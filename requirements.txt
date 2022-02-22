@@ -9,6 +9,23 @@ hydra-core>=1.1.0
 hydra-colorlog>=1.1.0
 hydra-optuna-sweeper>=1.1.0
 
+# REQUIREMENTS FROM MEAN SHIFTED AD USING CL
+faiss-gpu==1.7.1
+joblib==1.0.1
+numpy==1.21
+Pillow==9.0.0
+pkg-resources==0.0.0
+scikit-learn==0.24.2
+scipy==1.6.3
+sklearn==0.0
+threadpoolctl==2.1.0
+torch==1.8.1
+torchvision==0.9.1
+tqdm==4.61.0
+typing-extensions==3.10.0.0
+
+
+
 # --------- loggers --------- #
 # wandb
 # neptune-client
