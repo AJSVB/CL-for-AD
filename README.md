@@ -13,7 +13,7 @@
 
 ## Description
 
-We aim at performing AD with CL such that samples in multiple environments have close representations in the latent space. 
+We aim at performing AD with CL such that samples of same class but in different environments have close representations in the latent space. 
 
 ## How to run
 
