@@ -13,7 +13,7 @@
 
 ## Description
 
-What it does
+We aim at performing AD with CL such that samples in multiple environments have close representations in the latent space. 
 
 ## How to run
 
@@ -21,8 +21,8 @@ Install dependencies
 
 ```bash
 # clone project
-git clone https://github.com/YourGithubName/your-repo-name
-cd your-repo-name
+git clone https://github.com/AJSVB/CL-for-AD
+cd CL-for-AD
 
 # [OPTIONAL] create conda environment
 conda create -n myenv python=3.8
