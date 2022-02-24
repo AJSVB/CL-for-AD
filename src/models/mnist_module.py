@@ -18,64 +18,6 @@ import random
 import torch.nn.functional as F
 from sklearn.metrics import roc_auc_score
 
-class GaussianBlur(object):
-    """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
-
-    def __init__(self, sigma=[.1, 2.]):
-        self.sigma = sigma
-
-    def __call__(self, x):
-        sigma = random.uniform(self.sigma[0], self.sigma[1])
-        x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
-        return x
-
-
-transform_color = transforms.Compose([transforms.Resize(256),
-                                      transforms.CenterCrop(224),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-
-transform_resnet18 = transforms.Compose([
-    transforms.Resize(224, interpolation=BICUBIC),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
-
-
-moco_transform = transforms.Compose([
-    transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
-    transforms.RandomApply([
-        transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)  # not strengthened
-    ], p=0.8),
-    transforms.RandomGrayscale(p=0.2),
-    transforms.RandomApply([GaussianBlur([.1, 2.])], p=0.5),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-
-
-class Transform:
-    def __init__(self):
-        self.moco_transform = transforms.Compose([
-            transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
-            transforms.RandomApply([
-                transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)  # not strengthened
-            ], p=0.8),
-            transforms.RandomGrayscale(p=0.2),
-            transforms.RandomApply([GaussianBlur([.1, 2.])], p=0.5),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-
-    def __call__(self, x):
-        x_1 = self.moco_transform(x)
-        x_2 = self.moco_transform(x)
-        return x_1, x_2
-
-
-
-
 
 class MNISTLitModule(LightningModule):
     """
@@ -256,10 +198,9 @@ class MSAD(LightningModule):
         return loss, preds, y
 
     def training_step(self, batch: Any, batch_idx: int):
+        print(self.first_epoch)
         if self.first_epoch:
-            x, y = batch
-            features = self.model(x)
-            self.train_feature_space.append(features)
+            pass
         else:
 
             loss = self.run_epoch(batch)
@@ -274,51 +215,57 @@ class MSAD(LightningModule):
 
 
     def training_epoch_end(self, outputs: List[Any]):
+        print("on va la avant en fait?")
         if self.first_epoch:
-            self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy() #TODO cpu?
-            self.first_epoch = False
-            self.center = torch.FloatTensor(self.train_feature_space).mean(dim=0)
-            if self.hparams.angular:
-                self.center = F.normalize(self.center, dim=-1)
+            pass
         # `outputs` is a list of dicts returned from `training_step()`
         else:
             print(   self.total_loss / (self.total_num))
 
     def validation_step(self, batch: Any, batch_idx: int):
         if self.first_epoch:
-            pass
-
-        x, y = batch
-        features = self.model(x)
-        self.val_feature_space.append(features)
-        self.val_labels.append(y)
+            x, y = batch
+            features = self.model(x)
+            self.train_feature_space.append(features)
+        else:
+            x, y = batch
+            features = self.model(x)
+            self.val_feature_space.append(features)
+            self.val_labels.append(y)
 
     def validation_epoch_end(self, outputs: List[Any]):
         if self.first_epoch:
-            pass
-        self.val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
-        val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
-        distances = knn_score(self.train_feature_space, self.val_feature_space)
-        auc = roc_auc_score(val_labels, distances)
-        self.log("val/auc", auc, on_epoch=True, prog_bar=True)
+            self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy() #TODO cpu?
+            self.first_epoch = False
+            self.center = torch.FloatTensor(self.train_feature_space).mean(dim=0)
+            if self.hparams.angular:
+                self.center = F.normalize(self.center, dim=-1)
+
+        else:
+            self.val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
+            val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
+            distances = knn_score(self.train_feature_space, self.val_feature_space)
+            auc = roc_auc_score(val_labels, distances)
+            self.log("val/auc", auc, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch: Any, batch_idx: int):
         if self.first_epoch:
             pass
-
-        x, y = batch
-        features = self.model(x)
-        self.test_feature_space.append(features)
-        self.test_labels.append(y)
+        else:
+            x, y = batch
+            features = self.model(x)
+            self.test_feature_space.append(features)
+            self.test_labels.append(y)
 
     def test_epoch_end(self, outputs: List[Any]):
         if self.first_epoch:
             pass
-        self.test_feature_space = torch.cat(self.test_feature_space, dim=0).contiguous().cpu().numpy()
-        test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
-        distances = knn_score(self.train_feature_space, self.test_feature_space)
-        auc = roc_auc_score(test_labels, distances)
-        self.log("test/auc", auc, on_epoch=True, prog_bar=True)
+        else:
+            self.test_feature_space = torch.cat(self.test_feature_space, dim=0).contiguous().cpu().numpy()
+            test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
+            distances = knn_score(self.train_feature_space, self.test_feature_space)
+            auc = roc_auc_score(test_labels, distances)
+            self.log("test/auc", auc, on_epoch=True, prog_bar=True)
 
 
     def on_epoch_end(self):
@@ -347,7 +294,7 @@ class MSAD(LightningModule):
     def run_epoch(self, batch):
         (img1, img2), y = batch
 
-        self.optimizer.zero_grad()
+    #    self.optimizer.zero_grad()
 
         out_1 = self.model(img1)
         out_2 = self.model(img2)
@@ -356,7 +303,7 @@ class MSAD(LightningModule):
 
         loss = contrastive_loss(out_1, out_2)
 
-        if self.is_angular:
+        if self.hparams.angular:
             loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean())
 
 

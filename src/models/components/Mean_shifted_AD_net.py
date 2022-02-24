@@ -1,6 +1,6 @@
 from torch import nn
 import torchvision.models as models
-
+import torch.nn.functional as F
 
 
 def freeze_parameters(model, backbone, train_fc=False):
