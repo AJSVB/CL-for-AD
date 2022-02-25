@@ -1,5 +1,6 @@
 from typing import Any, List
 import numpy as np
+#import faiss
 import faiss
 import torch
 from pytorch_lightning import LightningModule

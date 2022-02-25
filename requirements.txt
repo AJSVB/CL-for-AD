@@ -11,6 +11,7 @@ hydra-optuna-sweeper>=1.1.0
 
 # REQUIREMENTS FROM MEAN SHIFTED AD USING CL
 faiss-gpu==1.7.1
+
 joblib==1.0.1
 numpy==1.21
 Pillow==9.0.0
