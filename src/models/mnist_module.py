@@ -67,7 +67,7 @@ class MSAD(LightningModule):
         self.test_labels = []
         self.total_loss, self.total_num = 0.0, 0
         self.loss = 100 #dummy value
-
+        self.model.eval()
 
     def forward(self, x: torch.Tensor):
         return self.model(x)
@@ -85,6 +85,7 @@ class MSAD(LightningModule):
 
             pass
         else:
+            self.model.eval()
 
             loss = self.run_epoch(batch)
 
@@ -98,7 +99,7 @@ class MSAD(LightningModule):
 
 
     def training_epoch_end(self, outputs: List[Any]):
-        print("training finished")
+        print(self.model.training)
         if self.first_epoch:
             #training_epoch_end is called after validation_epoch_end
             self.first_epoch = False
