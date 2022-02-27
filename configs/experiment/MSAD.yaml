@@ -21,8 +21,8 @@ seed: 12345
 
 
 trainer:
-  min_epochs: 5
-  max_epochs: 5
+  min_epochs: 20
+  max_epochs: 20
   gradient_clip_val: 0.5
   num_sanity_val_steps: 0
 
@@ -32,7 +32,7 @@ model:
   pretrained: False
 
 datamodule:
-  batch_size: 64
+  batch_size: 128
 
 logger:
   wandb:

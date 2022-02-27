@@ -1,7 +1,7 @@
 _target_: src.datamodules.CIFAR_datamodule.CIFARDataModule
 
 data_dir: ${data_dir} # data_dir is specified in config.yaml
-batch_size: 64
+batch_size: 128
 backbone: 18
 label_class: 0
 num_workers: 0
