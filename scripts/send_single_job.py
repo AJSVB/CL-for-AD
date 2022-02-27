@@ -11,7 +11,7 @@ from src.utils import computation
 
 
 nodes = [computation.Euler()]
-gpus = 2
+gpus = 1
 gpu_q = 4 # define job time queue (default: 4h)
 email = False # if True an email is sent when the job is concluded
 experiment = None #'example' # overwrite experiment name for logging

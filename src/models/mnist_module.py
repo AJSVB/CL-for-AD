@@ -206,7 +206,7 @@ class MSAD(LightningModule):
             loss = self.run_epoch(batch)
 
             # log train metrics
-            self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+            self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=False)
 
             # we can return here dict with any tensors
             # and then read it in some callback or in `training_epoch_end()`` below
@@ -250,7 +250,7 @@ class MSAD(LightningModule):
             if self.hparams.angular:
                 self.center = F.normalize(self.center, dim=-1)
             auc=0
-
+            self.center = self.center.to(self.device)
 
         else:
             self.treated_val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
