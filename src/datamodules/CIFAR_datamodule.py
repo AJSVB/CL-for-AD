@@ -153,8 +153,7 @@ class CIFARDataModule(LightningDataModule):
         a = torch.utils.data.DataLoader(self.trainset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=self.hparams.num_workers,
                                     drop_last=False)
 
-        return torch.utils.data.DataLoader(self.trainset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=self.hparams.num_workers,
-                                    drop_last=False)
+        return a
 
 
     def test_dataloader(self):

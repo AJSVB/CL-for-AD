@@ -21,8 +21,8 @@ def freeze_parameters(model, backbone, train_fc=False):
 class Mean_shifted_AD_net(nn.Module):
     def __init__(self, hparams: dict):
         super().__init__()
-
         pretrained = hparams["pretrained"]
+        print("pretrained" + str(pretrained))
         backbone = hparams["backbone"]
         if backbone == 152:
             self.backbone = models.resnet152(pretrained=pretrained)

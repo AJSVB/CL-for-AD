@@ -35,149 +35,23 @@ class MSAD(LightningModule):
     """
 
     def __init__(
-        self,
-        backbone,pretrained, label, lr,batch_size,angular
+            self,
+            backbone,pretrained, label, lr,batch_size,angular
     ):
         super().__init__()
 
         # this line allows to access init params with 'self.hparams' attribute
         # it also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
-
         self.model = Mean_shifted_AD_net(hparams=self.hparams)
-
-        # loss function
-        self.criterion = torch.nn.CrossEntropyLoss()
-
-        # use separate metric instance for train, val and test step
-        # to ensure a proper reduction over the epoch
-        self.train_acc = Accuracy()
-        self.val_acc = Accuracy()
-        self.test_acc = Accuracy()
-
-        # for logging best so far validation accuracy
-        self.val_acc_best = MaxMetric()
-
-        self.first_epoch = True
-
+        self.center_not_computed = True
         self.train_feature_space = []
-        self.val_feature_space= []
-        self.test_feature_space = []
-        self.val_labels = []
-        self.test_labels = []
+        self.automatic_optimization = False
         self.total_loss, self.total_num = 0.0, 0
-        self.loss = 100 #dummy value
-        self.model.eval()
-
-    def forward(self, x: torch.Tensor):
-        return self.model(x)
-
-    def step(self, batch: Any):
-        x, y = batch
-        logits = self.forward(x)
-        loss = self.criterion(logits, y)
-        preds = torch.argmax(logits, dim=1)
-        return loss, preds, y
-
-    def training_step(self, batch: Any, batch_idx: int):
-        if self.first_epoch:
-            self.log("train/loss", 0, on_step=True, on_epoch=True, prog_bar=False)
-
-            pass
-        else:
-            self.model.eval()
-
-            loss = self.run_epoch(batch)
-
-            # log train metrics
-            self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=False)
-
-            # we can return here dict with any tensors
-            # and then read it in some callback or in `training_epoch_end()`` below
-            # remember to always return loss from `training_step()` or else backpropagation will fail!
-            return {"loss": loss}
-
-
-    def training_epoch_end(self, outputs: List[Any]):
-        print(self.model.training)
-        if self.first_epoch:
-            #training_epoch_end is called after validation_epoch_end
-            self.first_epoch = False
-            loss = 10 #Dummy value
-        # `outputs` is a list of dicts returned from `training_step()`
-        else:
-            loss = self.total_loss / self.total_num
-            self.total_loss, self.total_num = 0.0, 0
-        self.loss = loss
-      #  self.log("train/loss", loss, on_epoch=True, prog_bar=True)
-
-
-    def validation_step(self, batch: Any, batch_idx: int):
-
-        if self.first_epoch:
-            x, y = batch
-            features = self.model(x)
-            self.train_feature_space.append(features)
-        else:
-            x, y = batch
-            features = self.model(x)
-            self.val_feature_space.append(features)
-
-    def validation_epoch_end(self, outputs: List[Any]):
-        if self.first_epoch:
-            self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy() #TODO cpu?
-            self.center = torch.FloatTensor(self.train_feature_space).mean(dim=0)
-            if self.hparams.angular:
-                self.center = F.normalize(self.center, dim=-1)
-            self.center = self.center.to(self.device)
-
-        else:
-            self.treated_val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
-            #val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
-            #distances = knn_score(self.train_feature_space, self.val_feature_space)
-            #print(val_labels)
-            #print(distances)
-            #auc = roc_auc_score(val_labels, distances)
-
-        self.log("val/acc", -self.loss, on_epoch=True, prog_bar=True)
-
-    def test_step(self, batch: Any, batch_idx: int):
-        if self.first_epoch:
-            pass
-        else:
-            x, y = batch
-            features = self.model(x)
-            self.test_feature_space.append(features)
-            self.test_labels.append(y)
-
-    def test_epoch_end(self, outputs: List[Any]):
-        print("test end")
-        if self.first_epoch:
-            auc = 0
-        else:
-            self.treated_test_feature_space = torch.cat(self.test_feature_space, dim=0).contiguous().cpu().numpy()
-            test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
-            distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
-            auc = roc_auc_score(test_labels, distances)
-            self.val_feature_space= []
-            self.val_labels = []
-            self.test_feature_space = []
-            self.test_labels = []
-
-        self.log("test/acc", auc, on_epoch=True, prog_bar=True)
-
-
-    def on_epoch_end(self):
-        # reset metrics at the end of every epoch
-        print("when does this happens?")
-        self.train_acc.reset()
-        self.test_acc.reset()
-        self.val_acc.reset()
-
-
-
-
-
+        self.test_feature_space = []
+        self.test_labels= []
+    def on_validation_model_train(self):
+        pass #we overwrite model.train with nothing, therefor, model stays in eval mode
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -185,29 +59,61 @@ class MSAD(LightningModule):
         See examples here:
             https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html#configure-optimizers
         """
-        return torch.optim.SGD(params=self.parameters(), lr=self.hparams.lr, weight_decay=0.00005)
+        self.model.eval()
+        return torch.optim.SGD(params=self.model.parameters(), lr=self.hparams.lr, weight_decay=0.00005)
 
-    def run_epoch(self, batch):
-        print("run epoch")
-        (img1, img2), y = batch
-
-    #    self.optimizer.zero_grad()
-
-        out_1 = self.model(img1)
-        out_2 = self.model(img2)
-        out_1 = out_1 - self.center
-        out_2 = out_2 - self.center
-
-        loss = contrastive_loss(out_1, out_2)
-
-        if self.hparams.angular:
-            loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean())
+    def validation_step(self, batch: Any, batch_idx: int):
+        if self.center_not_computed:
+            features = get_feature_space(self.model, batch)
+            self.train_feature_space.append(features)
+        elif self.trainer.max_epochs -1== self.current_epoch:
+            features = get_feature_space(self.model, batch)
+            self.train_feature_space.append(features)
 
 
-        self.total_num += img1.size(0)
-        self.total_loss += loss.item() * img1.size(0)
+    def on_validation_epoch_end(self):
+        if self.center_not_computed:
+            print("la")
+            self.center_not_computed=False
+            train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy()
+            self.center = torch.FloatTensor(train_feature_space).mean(dim=0)
+            if self.hparams.angular:
+                self.center = F.normalize(self.center, dim=-1)
+            self.center = self.center.to(self.device)
+            loss = 10 #Dummy value
+            self.train_feature_space = []
+        else:
+            print(self.current_epoch)
+            print(self.trainer.max_epochs)
+            if(self.current_epoch==self.trainer.max_epochs-1):
+                self.treated_val_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy()
 
-        return loss
+            loss = self.total_loss / self.total_num
+            self.total_loss, self.total_num = 0.0, 0
+        self.log("val/acc", -loss, on_epoch=True, prog_bar=True)
+
+    def training_step(self, batch: Any, batch_idx: int):
+      #  self.opt = self.optimizers()
+        loss = run_epoch(self.model,batch,self.optimizers(),self.center,self.hparams.angular)
+    #    self.manual_backward(loss) TODO
+      #  self.opt.step()
+        self.total_num += batch[0][0].size(0)
+        self.total_loss += loss.item() * batch[0][0].size(0)
+        # log train metrics
+        self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=False)
+
+    def test_step(self, batch: Any, batch_idx: int):
+            features = get_feature_space(self.model, batch)
+            self.test_feature_space.append(features)
+            (_, y) = batch
+            self.test_labels.append(y)
+
+    def test_epoch_end(self, outputs: List[Any]):
+            self.treated_test_feature_space = torch.cat(self.test_feature_space, dim=0).contiguous().cpu().numpy()
+            test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
+            distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
+            auc = roc_auc_score(test_labels, distances)
+            self.log("test/acc", auc, on_epoch=True, prog_bar=True)
 
 
 def knn_score(train_set, test_set, n_neighbours=2):
@@ -218,6 +124,11 @@ def knn_score(train_set, test_set, n_neighbours=2):
     index.add(train_set)
     D, _ = index.search(test_set, n_neighbours)
     return np.sum(D, axis=1)
+
+def get_feature_space(model, batch):
+    (imgs, _) = batch
+    features = model(imgs)
+    return features
 
 
 def contrastive_loss(out_1, out_2):
@@ -239,4 +150,25 @@ def contrastive_loss(out_1, out_2):
     pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
     loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
     return loss
+
+def run_epoch(model, batch, optimizer, center, is_angular):
+    ((img1, img2), _) = batch
+
+    optimizer.zero_grad()
+
+    out_1 = model(img1)
+    out_2 = model(img2)
+    out_1 = out_1 - center
+    out_2 = out_2 - center
+
+    loss = contrastive_loss(out_1, out_2)
+    if is_angular:
+        loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean())
+    print(loss)
+
+    loss.backward()
+
+    optimizer.step()
+    return loss
+
 

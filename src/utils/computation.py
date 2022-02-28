@@ -159,12 +159,16 @@ class Euler(Node):
         # "bsub -R rusage[ngpus_excl_p=1,mem=8000,scratch=5000] "
 
         print(command)
-        print("Sleep for 1 seconds..")
         import time
+        temp = ["ssh", "%s" % "ascardigli@euler.ethz.ch", command]
+        print(temp)
+
+        subprocess.Popen("rsync -ru /home/antoine/CL-for-AD/configs ascardigli@euler.ethz.ch:CL-for-AD --delete", shell=True, stdout=subprocess.PIPE)
+
+        subprocess.Popen("rsync -ru /home/antoine/CL-for-AD/src/models ascardigli@euler.ethz.ch:CL-for-AD/src --delete", shell=True, stdout=subprocess.PIPE)
+
         time.sleep(1)
 
-        temp = [ "ssh", "%s" % "ascardigli@euler.ethz.ch", command]
-        print(temp)
 
         # submit the job to Leonhard
         subprocess.Popen(temp,
