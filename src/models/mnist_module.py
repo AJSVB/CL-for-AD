@@ -1,4 +1,5 @@
 
+
 from typing import Any, List
 import numpy as np
 #import faiss
@@ -47,18 +48,6 @@ class MSAD(LightningModule):
 
         self.model = Mean_shifted_AD_net(hparams=self.hparams)
 
-        # loss function
-        self.criterion = torch.nn.CrossEntropyLoss()
-
-        # use separate metric instance for train, val and test step
-        # to ensure a proper reduction over the epoch
-        self.train_acc = Accuracy()
-        self.val_acc = Accuracy()
-        self.test_acc = Accuracy()
-
-        # for logging best so far validation accuracy
-        self.val_acc_best = MaxMetric()
-
         self.first_epoch = True
 
         self.train_feature_space = []
@@ -67,17 +56,10 @@ class MSAD(LightningModule):
         self.val_labels = []
         self.test_labels = []
         self.total_loss, self.total_num = 0.0, 0
-        self.loss = 100 #dummy value
         self.model.eval()
-
-        self.center_not_computed = True
+        self.loss = 100 #Dummy value
 
     def training_step(self, batch: Any, batch_idx: int):
-        if self.first_epoch:
-            self.log("train/loss", 0, on_step=True, on_epoch=True, prog_bar=False)
-
-            pass
-        else:
             self.model.eval()
 
             loss = self.run_epoch(batch)
@@ -92,15 +74,8 @@ class MSAD(LightningModule):
 
 
     def training_epoch_end(self, outputs: List[Any]):
-        print(self.model.training)
-        if self.first_epoch:
-            #training_epoch_end is called after validation_epoch_end
-            self.first_epoch = False
-            loss = 10 #Dummy value
-        # `outputs` is a list of dicts returned from `training_step()`
-        else:
-            loss = self.total_loss / self.total_num
-            self.total_loss, self.total_num = 0.0, 0
+        loss = self.total_loss / self.total_num
+        self.total_loss, self.total_num = 0.0, 0
         self.loss = loss
       #  self.log("train/loss", loss, on_epoch=True, prog_bar=True)
 
@@ -111,56 +86,38 @@ class MSAD(LightningModule):
             x, y = batch
             features = self.model(x)
             self.train_feature_space.append(features)
-        else:
+        elif self.trainer.max_epochs - 1 == self.current_epoch:
             x, y = batch
             features = self.model(x)
             self.val_feature_space.append(features)
 
     def validation_epoch_end(self, outputs: List[Any]):
         if self.first_epoch:
-            self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy() #TODO cpu?
+            self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy()
             self.center = torch.FloatTensor(self.train_feature_space).mean(dim=0)
             if self.hparams.angular:
                 self.center = F.normalize(self.center, dim=-1)
             self.center = self.center.to(self.device)
+            self.first_epoch = False
 
-        else:
+        elif self.trainer.max_epochs - 1 == self.current_epoch:
             self.treated_val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
-            #val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
-            #distances = knn_score(self.train_feature_space, self.val_feature_space)
-            #print(val_labels)
-            #print(distances)
-            #auc = roc_auc_score(val_labels, distances)
 
         self.log("val/acc", -self.loss, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch: Any, batch_idx: int):
-        if self.first_epoch:
-            pass
-        else:
-            x, y = batch
-            features = self.model(x)
-            self.test_feature_space.append(features)
-            self.test_labels.append(y)
+        x, y = batch
+        features = self.model(x)
+        self.test_feature_space.append(features)
+        self.test_labels.append(y)
 
     def test_epoch_end(self, outputs: List[Any]):
-        print("test end")
-        if self.first_epoch:
-            auc = 0
-        else:
-            self.treated_test_feature_space = torch.cat(self.test_feature_space, dim=0).contiguous().cpu().numpy()
-            test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
-            distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
-            auc = roc_auc_score(test_labels, distances)
-            self.val_feature_space= []
-            self.val_labels = []
-            self.test_feature_space = []
-            self.test_labels = []
+        self.treated_test_feature_space = torch.cat(self.test_feature_space, dim=0).contiguous().cpu().numpy()
+        test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
+        distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
+        auc = roc_auc_score(test_labels, distances)
 
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
-
-
-
 
     def configure_optimizers(self):
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
@@ -171,7 +128,6 @@ class MSAD(LightningModule):
         return torch.optim.SGD(params=self.parameters(), lr=self.hparams.lr, weight_decay=0.00005)
 
     def run_epoch(self, batch):
-        print("run epoch")
         (img1, img2), y = batch
 
     #    self.optimizer.zero_grad()
