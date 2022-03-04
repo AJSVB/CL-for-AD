@@ -1,0 +1,314 @@
+correlated factors:
+- position
+- lightness
+modes:
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      position:
+      - lower center
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - bright
+      position:
+      - center left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - dark
+      position:
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.25
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - green
+      - cyan
+      - blue
+      - magenta
+      lightness:
+      - dark
+      - darker
+      - brighter
+      - bright
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - small
+      - smaller
+      - normal
+      - larger
+      - large
+      shape:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      texture:
+      - tiles
+      - wood
+      - carpet
+      - bricks
+      - lava
+    tag: uniform all
+- ratio: 0.25
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: uniform selected
+- ratio: 0.041666666666666664
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      position:
+      - center left
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: violate position
+- ratio: 0.041666666666666664
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - bright
+      position:
+      - lower center
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: violate position
+- ratio: 0.041666666666666664
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - dark
+      position:
+      - lower center
+      - center left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: violate position
+- ratio: 0.041666666666666664
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - bright
+      - dark
+      position:
+      - lower center
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: violate lightness
+- ratio: 0.041666666666666664
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - dark
+      position:
+      - center left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: violate lightness
+- ratio: 0.041666666666666664
+  specification:
+    objs:
+    - category: test
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      position:
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: violate lightness
+samples: 40000
+shape:
+- 1
+- 128
+- 128
+task: position

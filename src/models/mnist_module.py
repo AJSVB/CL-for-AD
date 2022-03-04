@@ -66,7 +66,6 @@ class MSAD(LightningModule):
 
             # log train metrics
             self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=False)
-
             # we can return here dict with any tensors
             # and then read it in some callback or in `training_epoch_end()`` below
             # remember to always return loss from `training_step()` or else backpropagation will fail!
@@ -86,22 +85,42 @@ class MSAD(LightningModule):
             x, y = batch
             features = self.model(x)
             self.train_feature_space.append(features)
+            self.val_labels.append(y)
+
         elif self.trainer.max_epochs - 1 == self.current_epoch:
             x, y = batch
             features = self.model(x)
             self.val_feature_space.append(features)
+            self.val_labels.append(y)
 
     def validation_epoch_end(self, outputs: List[Any]):
         if self.first_epoch:
             self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy()
+            val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
+
+            idx = np.array(val_labels) != 0
+            Cosine_similarity(self.train_feature_space[idx],val_labels[idx],self.train_feature_space[~idx],0,"before_training")
+
+            self.train_feature_space = self.train_feature_space[idx]
             self.center = torch.FloatTensor(self.train_feature_space).mean(dim=0)
             if self.hparams.angular:
                 self.center = F.normalize(self.center, dim=-1)
             self.center = self.center.to(self.device)
             self.first_epoch = False
-
+          #  tsne(self.train_feature_space,val_labels,"before_training")
+            self.val_labels = []
         elif self.trainer.max_epochs - 1 == self.current_epoch:
             self.treated_val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
+            val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
+
+            idx = np.array(val_labels) != 0
+            Cosine_similarity(self.treated_val_feature_space[idx],val_labels[idx],self.treated_val_feature_space[~idx],0,"after_training")
+
+            self.treated_val_feature_space = self.treated_val_feature_space[idx]
+
+           # tsne(self.treated_val_feature_space,val_labels,"after_training")
+
+
 
         self.log("val/acc", -self.loss, on_epoch=True, prog_bar=True)
 
@@ -178,3 +197,64 @@ def contrastive_loss(out_1, out_2):
     pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
     loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
     return loss
+
+
+def tsne(data,labels,name):
+    from sklearn.manifold import TSNE  # Picking the top 1000 points as TSNE takes a lot of time for 15K points
+    import pandas as pd
+    import seaborn as sn
+    import matplotlib.pyplot as plt
+    import os
+    model = TSNE(n_components=2, random_state=0)
+    tsne_data = model.fit_transform(data)# creating a new data frame which help us in ploting the result data
+    tsne_data = np.vstack((tsne_data.T, labels)).T
+    tsne_df = pd.DataFrame(data=tsne_data, columns=("Dim_1", "Dim_2", "label"))  # Ploting the result of tsne
+    print(os.getcwd())
+    sn.FacetGrid(tsne_df, hue="label", size = 6).map(plt.scatter, "Dim_1", "Dim_2").add_legend().savefig(name+".pdf")
+    print("this worked?")
+
+
+def Cosine_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels , name):
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    reduction_factor = 10
+    def f(X):
+        return X[:int(len(X)/reduction_factor)]
+
+    def cosine_similarity1(X,Y=None):
+        return [np.mean(cosine_similarity(X,Y))]
+
+
+
+
+
+
+    #TODO Here I assume that anomalous_labels = 0
+    print("we get here I suppose?")
+    normal_inner_similarity = []
+    normal_outer_similarity = []
+    anomalous_inner_similarity = []
+    anomalous_outer_similarity = []
+    #inner normal
+    for label in range(1,10):
+        idx = np.array(normal_labels) == label
+        normal_inner_similarity+=cosine_similarity1(f(normal_data[idx]))
+    #outer normal
+    for label in range(1,10):
+        for label2 in range(label+1,10):
+            idx = np.array(normal_labels) == label
+            idx2 = np.array(normal_labels) == label2
+            normal_outer_similarity+=cosine_similarity1(f(normal_data[idx]),f(normal_data[idx2]))
+    #inner anomalous
+    anomalous_inner_similarity+=cosine_similarity1(f(anomalous_data))
+    #outer anomalous
+    anomalous_outer_similarity+=cosine_similarity1(f(normal_data),f(anomalous_data))
+
+    print("normal_inner_similarity "+ str(normal_inner_similarity))
+    print("normal_outer_similarity" +str(normal_outer_similarity))
+    print("avg_normal_inner_similarity "+ str(np.mean(normal_inner_similarity)))
+    print("avg_normal_outer_similarity" +str(np.mean(normal_outer_similarity)))
+    print("anomalous_inner_similarity "+str(anomalous_inner_similarity))
+    print("anomalous_outer_similarity "+str(anomalous_outer_similarity))
+
+

@@ -1,0 +1,135 @@
+correlated factors: []
+modes:
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness: brighter
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness: dark
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness: bright
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+- ratio: 0.25
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - green
+      - cyan
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - upper left
+      - center left
+      - lower left
+      - upper center
+      - center center
+      - lower center
+      - upper right
+      - center right
+      - lower right
+      scale:
+      - small
+      - smaller
+      - normal
+      - larger
+      - large
+      shape:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      texture:
+      - tiles
+      - wood
+      - carpet
+      - bricks
+      - lava
+    tag: uniform all
+samples: 40000
+shape:
+- 1
+- 128
+- 128
+task: lightness

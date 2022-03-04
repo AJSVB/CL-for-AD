@@ -1,0 +1,163 @@
+correlated factors:
+- hue
+- scale
+modes:
+- ratio: 0.31666666666666665
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      lightness:
+      - darker
+      - brighter
+      - dark
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - larger
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+- ratio: 0.31666666666666665
+  specification:
+    objs:
+    - category: val
+      hue:
+      - yellow
+      lightness:
+      - darker
+      - brighter
+      - dark
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - large
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+- ratio: 0.31666666666666665
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      lightness:
+      - darker
+      - brighter
+      - dark
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - normal
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+- ratio: 0.01666666666666668
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      lightness:
+      - darker
+      - brighter
+      - dark
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - large
+      - normal
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ''
+- ratio: 0.01666666666666668
+  specification:
+    objs:
+    - category: val
+      hue:
+      - yellow
+      lightness:
+      - darker
+      - brighter
+      - dark
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - larger
+      - normal
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ''
+- ratio: 0.01666666666666668
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      lightness:
+      - darker
+      - brighter
+      - dark
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - larger
+      - large
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ''
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: hue

@@ -1,0 +1,235 @@
+correlated factors:
+- position
+- lightness
+modes:
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - bright
+      position:
+      - lower center
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: ic
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - bright
+      position:
+      - upper center
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - bright
+      position:
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: violate
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - darker
+      position:
+      - lower center
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: ic
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - darker
+      position:
+      - upper center
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - darker
+      position:
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: violate
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - dark
+      position:
+      - lower center
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: violate
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - dark
+      position:
+      - upper center
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: ic
+- ratio: 0.08333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - dark
+      position:
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+      - tiles
+      - bricks
+    tag: ic
+samples: 20000
+shape:
+- 1
+- 128
+- 128
+task: lightness

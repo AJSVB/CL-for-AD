@@ -1,0 +1,86 @@
+correlated factors: []
+modes:
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position: upper right
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position: upper left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position: center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: position

@@ -1,0 +1,135 @@
+correlated factors:
+- position
+- shape
+modes:
+- ratio: 0.2
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - center right
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+- ratio: 0.2
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - center right
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 2
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+- ratio: 0.2
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - upper center
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 2
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+- ratio: 0.2
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - upper center
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 0
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+- ratio: 0.2
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 0
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+samples: 43740
+shape:
+- 1
+- 128
+- 128
+task: position

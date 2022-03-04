@@ -1,0 +1,163 @@
+correlated factors:
+- position
+- lightness
+modes:
+- ratio: 0.26666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      position:
+      - lower center
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.26666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - bright
+      position:
+      - center left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.26666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - dark
+      position:
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.06666666666666665
+  specification:
+    objs:
+    - category: train
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - bright
+      - dark
+      position:
+      - lower center
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+- ratio: 0.06666666666666665
+  specification:
+    objs:
+    - category: train
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - dark
+      position:
+      - center left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+- ratio: 0.06666666666666665
+  specification:
+    objs:
+    - category: train
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      position:
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+samples: 43740
+shape:
+- 1
+- 128
+- 128
+task: position

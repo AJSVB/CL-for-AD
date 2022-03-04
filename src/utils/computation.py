@@ -165,7 +165,7 @@ class Euler(Node):
 
         subprocess.Popen("rsync -ru /home/antoine/CL-for-AD/configs ascardigli@euler.ethz.ch:CL-for-AD --delete", shell=True, stdout=subprocess.PIPE)
 
-        subprocess.Popen("rsync -ru /home/antoine/CL-for-AD/src/models ascardigli@euler.ethz.ch:CL-for-AD/src --delete", shell=True, stdout=subprocess.PIPE)
+        subprocess.Popen("rsync -ru /home/antoine/CL-for-AD/src ascardigli@euler.ethz.ch:CL-for-AD --delete", shell=True, stdout=subprocess.PIPE)
 
         time.sleep(1)
 

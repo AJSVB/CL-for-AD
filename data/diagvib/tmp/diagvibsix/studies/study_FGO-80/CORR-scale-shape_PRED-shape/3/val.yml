@@ -1,0 +1,163 @@
+correlated factors:
+- scale
+- shape
+modes:
+- ratio: 0.26666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      shape:
+      - 0
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.26666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - normal
+      shape:
+      - 4
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.26666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - small
+      shape:
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.06666666666666665
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - normal
+      - small
+      shape:
+      - 0
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+- ratio: 0.06666666666666665
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      - small
+      shape:
+      - 4
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+- ratio: 0.06666666666666665
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      - normal
+      shape:
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: shape

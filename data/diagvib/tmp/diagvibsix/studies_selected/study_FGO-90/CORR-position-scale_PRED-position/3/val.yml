@@ -1,0 +1,163 @@
+correlated factors:
+- position
+- scale
+modes:
+- ratio: 0.3
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      scale:
+      - larger
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.3
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - center left
+      scale:
+      - normal
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.3
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - upper left
+      scale:
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ic
+- ratio: 0.033333333333333326
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - lower center
+      scale:
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+- ratio: 0.033333333333333326
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - center left
+      scale:
+      - larger
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+- ratio: 0.033333333333333326
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      - bright
+      - dark
+      position:
+      - upper left
+      scale:
+      - larger
+      - normal
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+      - wood
+      - carpet
+    tag: ''
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: position

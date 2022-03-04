@@ -1,0 +1,85 @@
+correlated factors:
+- lightness
+- texture
+modes:
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      - 2
+      - 0
+      texture:
+      - tiles
+    tag: ic
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - darker
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      - 2
+      - 0
+      texture:
+      - lava
+    tag: ic
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - dark
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      - 2
+      - 0
+      texture:
+      - bricks
+    tag: ic
+samples: 43740
+shape:
+- 1
+- 128
+- 128
+task: texture

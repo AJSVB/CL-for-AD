@@ -1,0 +1,160 @@
+correlated factors:
+- lightness
+- texture
+modes:
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - lava
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - dark
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - dark
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - lava
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - bright
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - bright
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - lava
+    tag: ic
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: lightness

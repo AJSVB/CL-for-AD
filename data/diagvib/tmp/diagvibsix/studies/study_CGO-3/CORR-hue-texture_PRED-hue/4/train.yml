@@ -1,0 +1,160 @@
+correlated factors:
+- hue
+- texture
+modes:
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - red
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - red
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - tiles
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - yellow
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - yellow
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - tiles
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - cyan
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - tiles
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: train
+      hue:
+      - cyan
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      - 8
+      - 6
+      texture:
+      - bricks
+    tag: ic
+samples: 43740
+shape:
+- 1
+- 128
+- 128
+task: hue

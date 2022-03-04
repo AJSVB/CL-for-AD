@@ -1,0 +1,110 @@
+correlated factors:
+- position
+- texture
+modes:
+- ratio: 0.25
+  specification:
+    objs:
+    - category: train
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - upper right
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+    tag: ic
+- ratio: 0.25
+  specification:
+    objs:
+    - category: train
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - wood
+    tag: ic
+- ratio: 0.25
+  specification:
+    objs:
+    - category: train
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - upper left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - carpet
+    tag: ic
+- ratio: 0.25
+  specification:
+    objs:
+    - category: train
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - center left
+      scale:
+      - normal
+      - large
+      - small
+      shape:
+      - 2
+      - 4
+      - 3
+      texture:
+      - lava
+    tag: ic
+samples: 43740
+shape:
+- 1
+- 128
+- 128
+task: texture

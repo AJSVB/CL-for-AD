@@ -1,0 +1,163 @@
+correlated factors:
+- shape
+- texture
+modes:
+- ratio: 0.31666666666666665
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      texture:
+      - tiles
+    tag: ic
+- ratio: 0.31666666666666665
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 2
+      texture:
+      - lava
+    tag: ic
+- ratio: 0.31666666666666665
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 0
+      texture:
+      - bricks
+    tag: ic
+- ratio: 0.01666666666666668
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      texture:
+      - lava
+      - bricks
+    tag: ''
+- ratio: 0.01666666666666668
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 2
+      texture:
+      - tiles
+      - bricks
+    tag: ''
+- ratio: 0.01666666666666668
+  specification:
+    objs:
+    - category: train
+      hue:
+      - magenta
+      - green
+      - yellow
+      lightness:
+      - brighter
+      - darker
+      - dark
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 0
+      texture:
+      - tiles
+      - lava
+    tag: ''
+samples: 43740
+shape:
+- 1
+- 128
+- 128
+task: shape

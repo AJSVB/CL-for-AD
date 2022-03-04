@@ -1,0 +1,160 @@
+correlated factors:
+- lightness
+- scale
+modes:
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      - yellow
+      - red
+      lightness:
+      - darker
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - larger
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      - yellow
+      - red
+      lightness:
+      - darker
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - large
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      - yellow
+      - red
+      lightness:
+      - brighter
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - larger
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      - yellow
+      - red
+      lightness:
+      - brighter
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - large
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      - yellow
+      - red
+      lightness:
+      - dark
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - large
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+- ratio: 0.16666666666666666
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      - yellow
+      - red
+      lightness:
+      - dark
+      position:
+      - lower right
+      - center left
+      - upper right
+      scale:
+      - normal
+      shape:
+      - 8
+      - 6
+      - 1
+      texture:
+      - wood
+      - tiles
+      - carpet
+    tag: ic
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: lightness

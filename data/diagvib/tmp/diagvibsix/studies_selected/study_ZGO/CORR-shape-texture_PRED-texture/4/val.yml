@@ -1,0 +1,85 @@
+correlated factors:
+- shape
+- texture
+modes:
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 1
+      texture:
+      - carpet
+    tag: ic
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 8
+      texture:
+      - tiles
+    tag: ic
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: val
+      hue:
+      - red
+      - yellow
+      - cyan
+      lightness:
+      - bright
+      - darker
+      - dark
+      position:
+      - lower center
+      - upper center
+      - center left
+      scale:
+      - larger
+      - large
+      - smaller
+      shape:
+      - 6
+      texture:
+      - bricks
+    tag: ic
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: texture

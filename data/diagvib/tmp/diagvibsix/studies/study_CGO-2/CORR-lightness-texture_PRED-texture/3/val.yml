@@ -1,0 +1,135 @@
+correlated factors:
+- lightness
+- texture
+modes:
+- ratio: 0.2
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - brighter
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+    tag: ic
+- ratio: 0.2
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - bright
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - lava
+    tag: ic
+- ratio: 0.2
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - bright
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - wood
+    tag: ic
+- ratio: 0.2
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - wood
+    tag: ic
+- ratio: 0.2
+  specification:
+    objs:
+    - category: val
+      hue:
+      - cyan
+      - magenta
+      - green
+      lightness:
+      - dark
+      position:
+      - lower center
+      - center left
+      - upper left
+      scale:
+      - larger
+      - normal
+      - small
+      shape:
+      - 0
+      - 4
+      - 1
+      texture:
+      - carpet
+    tag: ic
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: texture

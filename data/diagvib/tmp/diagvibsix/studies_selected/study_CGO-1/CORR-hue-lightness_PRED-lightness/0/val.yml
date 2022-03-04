@@ -1,0 +1,110 @@
+correlated factors:
+- hue
+- lightness
+modes:
+- ratio: 0.25
+  specification:
+    objs:
+    - category: val
+      hue:
+      - magenta
+      lightness:
+      - brighter
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      - 2
+      - 0
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+- ratio: 0.25
+  specification:
+    objs:
+    - category: val
+      hue:
+      - green
+      lightness:
+      - brighter
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      - 2
+      - 0
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+- ratio: 0.25
+  specification:
+    objs:
+    - category: val
+      hue:
+      - green
+      lightness:
+      - darker
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      - 2
+      - 0
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+- ratio: 0.25
+  specification:
+    objs:
+    - category: val
+      hue:
+      - yellow
+      lightness:
+      - dark
+      position:
+      - center right
+      - upper center
+      - upper left
+      scale:
+      - larger
+      - smaller
+      - small
+      shape:
+      - 5
+      - 2
+      - 0
+      texture:
+      - tiles
+      - lava
+      - bricks
+    tag: ic
+samples: 8748
+shape:
+- 1
+- 128
+- 128
+task: lightness

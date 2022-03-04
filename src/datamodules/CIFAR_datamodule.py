@@ -108,6 +108,7 @@ class CIFARDataModule(LightningDataModule):
         # this line allows to access init params with 'self.hparams' attribute
         self.save_hyperparameters(logger=False)
 
+        self.is_setup = False
 
         self.data_train: Optional[Dataset] = None
         self.data_val: Optional[Dataset] = None
@@ -123,10 +124,10 @@ class CIFARDataModule(LightningDataModule):
         ds = torchvision.datasets.CIFAR10
         transform = transform_color if self.hparams.backbone == 152 else transform_resnet18
         coarse = {}
-        self.trainset = ds(root=self.hparams.data_dir, train=True, download=True, transform=transform, **coarse)
-        self.testset = ds(root=self.hparams.data_dir, train=False, download=True, transform=transform, **coarse)
-        self.trainset_1 = ds(root=self.hparams.data_dir, train=True, download=True, transform=Transform(), **coarse)
-        self.is_setup = False
+        ds(root=self.hparams.data_dir, train=True, download=True, transform=transform, **coarse)
+        ds(root=self.hparams.data_dir, train=False, download=True, transform=transform, **coarse)
+        ds(root=self.hparams.data_dir, train=True, download=True, transform=Transform(), **coarse)
+
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -136,27 +137,37 @@ class CIFARDataModule(LightningDataModule):
         # load datasets only if they're not loaded already
         if not self.is_setup:
             self.is_setup = True
-            idx = np.array(self.trainset.targets) == self.hparams.label_class
-            self.testset.targets = [int(t != self.hparams.label_class) for t in self.testset.targets]
+
+            ds = torchvision.datasets.CIFAR10
+            transform = transform_color if self.hparams.backbone == 152 else transform_resnet18
+            coarse = {}
+            self.trainset = ds(root=self.hparams.data_dir, train=True, download=True, transform=transform, **coarse)
+            self.testset = ds(root=self.hparams.data_dir, train=False, download=True, transform=transform, **coarse)
+            self.trainset_1 = ds(root=self.hparams.data_dir, train=True, download=True, transform=Transform(), **coarse)
+            if True: #for evaluation only!
+                idx = np.array(self.trainset.targets) != -1
+            else:
+                idx = np.array(self.trainset.targets) != self.hparams.label_class
+
+
             self.trainset.data = self.trainset.data[idx]
             self.trainset.targets = [self.trainset.targets[i] for i, flag in enumerate(idx, 0) if flag]
+            idx = np.array(self.trainset.targets) != self.hparams.label_class
+
             self.trainset_1.data = self.trainset_1.data[idx]
             self.trainset_1.targets = [self.trainset_1.targets[i] for i, flag in enumerate(idx, 0) if flag]
 
-    def train_dataloader(self):
+            self.testset.targets = [int(t == self.hparams.label_class) for t in self.testset.targets]
 
+    def train_dataloader(self):
         return torch.utils.data.DataLoader(self.trainset_1, batch_size=self.hparams.batch_size, shuffle=True,
                                                num_workers=self.hparams.num_workers, drop_last=False)
 
     def val_dataloader(self):
-        print(len(self.trainset))
         a = torch.utils.data.DataLoader(self.trainset, batch_size=self.hparams.batch_size, shuffle=True, num_workers=self.hparams.num_workers,
                                     drop_last=False)
-
         return a
 
-
     def test_dataloader(self):
-        print(len(self.testset))
         return torch.utils.data.DataLoader(self.testset, batch_size=self.hparams.batch_size, shuffle=False, num_workers=self.hparams.num_workers,
                                                   drop_last=False)

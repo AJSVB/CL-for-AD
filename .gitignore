@@ -146,3 +146,8 @@ logs/
 wandb/
 .env
 .autoenv
+./venv/lib/python3.8/site-packages/torch/lib/libtorch_cuda.so
+./venv/lib/python3.8/site-packages/torch/lib/libtorch_cpu.so
+./venv/lib/python3.8/site-packages/faiss/_swigfaiss.cpython-38-x86_64-linux-gnu.so
+./data/diagvib/tmp/diagvibsix/mnist/mnist_processed.npz
+./data/cifar-10-python.tar.gz

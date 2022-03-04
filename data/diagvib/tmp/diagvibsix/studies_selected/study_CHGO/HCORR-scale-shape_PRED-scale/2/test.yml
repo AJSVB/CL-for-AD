@@ -1,0 +1,139 @@
+correlated factors:
+- scale
+- shape
+modes:
+- ratio: 0.1111111111111111
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      shape:
+      - 2
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+- ratio: 0.1111111111111111
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - large
+      shape:
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+- ratio: 0.1111111111111111
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - small
+      shape:
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: ic
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - normal
+      shape:
+      - 4
+      - 3
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: violate corr
+- ratio: 0.3333333333333333
+  specification:
+    objs:
+    - category: test
+      hue:
+      - red
+      - blue
+      - magenta
+      lightness:
+      - brighter
+      - dark
+      - bright
+      position:
+      - upper right
+      - upper left
+      - center left
+      scale:
+      - large
+      - small
+      shape:
+      - 2
+      texture:
+      - wood
+      - carpet
+      - lava
+    tag: violate free
+samples: 30000
+shape:
+- 1
+- 128
+- 128
+task: scale
