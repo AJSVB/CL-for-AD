@@ -169,7 +169,7 @@ class DIAGVIBModule(LightningDataModule):
                     #    print(train_env0)
                     #    print(str(a)==str(train_env0))
                     train.dataset.task_labels = [int(a != train_env0) for a in train.dataset.task_labels]
-                    test.dataset.task_labels = [int(a == normal_label) for a in test.dataset.task_labels]
+                    test.dataset.task_labels = [int(a == normal_label) for a in test.dataset.task_labels] #targets?
                     return train, test
 
             train, test = get_diagvib(self.hparams.data_dir)
