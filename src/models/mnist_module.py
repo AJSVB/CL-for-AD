@@ -58,7 +58,7 @@ class MSAD(LightningModule):
         self.total_loss, self.total_num = 0.0, 0
         self.model.eval()
         self.loss = 100 #Dummy value
-        self.printing_cosine_similarity_experiment = True
+        self.printing_cosine_similarity_experiment = False
 
 
     def training_step(self, batch: Any, batch_idx: int):
@@ -128,7 +128,6 @@ class MSAD(LightningModule):
 
     def test_step(self, batch: Any, batch_idx: int):
         x, y = batch
-        y = y!=5
         features = self.model(x)
         self.test_feature_space.append(features)
         self.test_labels.append(y)
@@ -232,26 +231,28 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
         for label in all_labels:
             label_idx = normal_labels == label
             label_data = normal_data[label_idx]
+            anomalous_outer_similarity=0
             for anomalous_sample in f(anomalous_data):
                 distances = dist_metric([anomalous_sample],label_data)
                 distance_idx = np.argsort(distances)[0]
                 if(dist_metric==cosine_similarity):
                     distance_idx=distance_idx[::-1]
                 ten_percent_closest = f(label_data[distance_idx])
-                anomalous_outer_similarity=np.mean(dist_metric(ten_percent_closest,[anomalous_sample]))
+                anomalous_outer_similarity+=np.mean(dist_metric(ten_percent_closest,[anomalous_sample]))
             print("similarity between anomalies and closest samples from environment " + str(label) + " using distance metric " + str(dist_metric) +
-                      " : " + str(np.mean(anomalous_outer_similarity)))
+                      " : " + str((anomalous_outer_similarity/len(f(anomalous_data)))))
 
-
-        label_data= normal_data
-        distances = dist_metric([anomalous_sample],label_data)
-        distance_idx = np.argsort(distances)[0]
-        if (dist_metric == cosine_similarity):
-            distance_idx = distance_idx[::-1]
-        ten_percent_closest = f(label_data[distance_idx])
-        anomalous_outer_similarity=np.mean(dist_metric(ten_percent_closest,[anomalous_sample]))
-        print("similarity between anomalies and closest normal samples using distance metric " + str(dist_metric) +
-                  " : " + str(anomalous_outer_similarity))
+        anomalous_outer_similarity=0
+        for anomalous_sample in f(anomalous_data):
+            label_data= normal_data
+            distances = dist_metric([anomalous_sample],label_data)
+            distance_idx = np.argsort(distances)[0]
+            if (dist_metric == cosine_similarity):
+                distance_idx = distance_idx[::-1]
+            ten_percent_closest = f(label_data[distance_idx])
+            anomalous_outer_similarity+=np.mean(dist_metric(ten_percent_closest,[anomalous_sample]))
+            print("similarity between anomalies and closest normal samples using distance metric " + str(dist_metric) +
+                      " : " + str(anomalous_outer_similarity/len(f(anomalous_data))))
 
 
 
