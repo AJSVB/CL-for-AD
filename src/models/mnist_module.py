@@ -58,6 +58,8 @@ class MSAD(LightningModule):
         self.total_loss, self.total_num = 0.0, 0
         self.model.eval()
         self.loss = 100 #Dummy value
+        self.printing_cosine_similarity_experiment = False
+
 
     def training_step(self, batch: Any, batch_idx: int):
             self.model.eval()
@@ -97,26 +99,27 @@ class MSAD(LightningModule):
         if self.first_epoch:
             self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy()
             val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
+            if(self.printing_cosine_similarity_experiment):
+                idx = np.array(val_labels) != 0
+                Cosine_similarity(self.train_feature_space[idx],val_labels[idx],self.train_feature_space[~idx],0,"before_training")
+                self.train_feature_space = self.train_feature_space[idx]
 
-            idx = np.array(val_labels) != 0
-            Cosine_similarity(self.train_feature_space[idx],val_labels[idx],self.train_feature_space[~idx],0,"before_training")
-
-            self.train_feature_space = self.train_feature_space[idx]
+#            self.center,_ = torch.FloatTensor(self.train_feature_space).median(dim=0)
             self.center = torch.FloatTensor(self.train_feature_space).mean(dim=0)
+
             if self.hparams.angular:
+                print(self.center)
                 self.center = F.normalize(self.center, dim=-1)
             self.center = self.center.to(self.device)
             self.first_epoch = False
-          #  tsne(self.train_feature_space,val_labels,"before_training")
             self.val_labels = []
         elif self.trainer.max_epochs - 1 == self.current_epoch:
             self.treated_val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
-            val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
-
-            idx = np.array(val_labels) != 0
-            Cosine_similarity(self.treated_val_feature_space[idx],val_labels[idx],self.treated_val_feature_space[~idx],0,"after_training")
-
-            self.treated_val_feature_space = self.treated_val_feature_space[idx]
+            if(self.printing_cosine_similarity_experiment):
+                val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
+                idx = np.array(val_labels) != 0
+                Cosine_similarity(self.treated_val_feature_space[idx],val_labels[idx],self.treated_val_feature_space[~idx],0,"after_training")
+                self.treated_val_feature_space = self.treated_val_feature_space[idx]
 
            # tsne(self.treated_val_feature_space,val_labels,"after_training")
 
@@ -126,6 +129,7 @@ class MSAD(LightningModule):
 
     def test_step(self, batch: Any, batch_idx: int):
         x, y = batch
+        y = y!=5
         features = self.model(x)
         self.test_feature_space.append(features)
         self.test_labels.append(y)
@@ -212,6 +216,85 @@ def tsne(data,labels,name):
     print(os.getcwd())
     sn.FacetGrid(tsne_df, hue="label", size = 6).map(plt.scatter, "Dim_1", "Dim_2").add_legend().savefig(name+".pdf")
     print("this worked?")
+
+
+
+def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels , name,reduction_factor):
+    from sklearn.metrics.pairwise import cosine_similarity
+    from torch import cdist
+
+    def f(X):
+        return X[:int(len(X)/reduction_factor)]
+
+
+    def cosine_similarity1(X,Y=None):
+        return [np.mean(cosine_similarity(X,Y))]
+
+
+    all_labels = np.unique(normal_labels)
+
+
+    for dist_metric in [cdist,cosine_similarity]:
+        for label in all_labels:
+            anomalous_outer_similarity = []
+            label_idx = normal_labels == label
+            label_data = normal_data[label_idx]
+            for anomalous_sample in f(anomalous_data):
+                distances = dist_metric(anomalous_sample,label_data)
+                distance_idx = np.argsort(distances)
+                ten_percent_closest = f(label_data[distance_idx])
+                anomalous_outer_similarity+=cosine_similarity1(ten_percent_closest,anomalous_sample)
+            print("similarity between anomalies and closest samples from environment " + str(label) + " using distance metric " + str(dist_metric) +
+                      " : " + str(np.mean(anomalous_outer_similarity)))
+
+
+        anomalous_outer_similarity = []
+        label_data= normal_data
+        distances = dist_metric(anomalous_sample,label_data)
+        distance_idx = np.argsort(distances)
+        ten_percent_closest = f(label_data[distance_idx])
+        anomalous_outer_similarity+=cosine_similarity1(ten_percent_closest,anomalous_sample)
+        print("similarity between anomalies and closest normal samples using distance metric " + str(dist_metric) +
+                  " : " + str(anomalous_outer_similarity))
+
+
+
+
+
+    #TODO Here I assume that anomalous_labels = 0
+    print("we get here I suppose?")
+    normal_inner_similarity = []
+    normal_outer_similarity = []
+    anomalous_inner_similarity = []
+    anomalous_outer_similarity = []
+    #inner normal
+    for label in range(1,10):
+        idx = np.array(normal_labels) == label
+        normal_inner_similarity+=cosine_similarity1(f(normal_data[idx]))
+    #outer normal
+    for label in range(1,10):
+        for label2 in range(label+1,10):
+            idx = np.array(normal_labels) == label
+            idx2 = np.array(normal_labels) == label2
+            normal_outer_similarity+=cosine_similarity1(f(normal_data[idx]),f(normal_data[idx2]))
+    #inner anomalous
+    anomalous_inner_similarity+=cosine_similarity1(f(anomalous_data))
+    #outer anomalous
+    anomalous_outer_similarity+=cosine_similarity1(f(normal_data),f(anomalous_data))
+
+    print("normal_inner_similarity "+ str(normal_inner_similarity))
+    print("normal_outer_similarity" +str(normal_outer_similarity))
+    print("avg_normal_inner_similarity "+ str(np.mean(normal_inner_similarity)))
+    print("avg_normal_outer_similarity" +str(np.mean(normal_outer_similarity)))
+    print("anomalous_inner_similarity "+str(anomalous_inner_similarity))
+    print("anomalous_outer_similarity "+str(anomalous_outer_similarity))
+
+
+
+
+
+
+
 
 
 def Cosine_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels , name):

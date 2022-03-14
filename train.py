@@ -23,4 +23,9 @@ def main(config: DictConfig):
 
 
 if __name__ == "__main__":
+    import os
+    os.chdir("./data/diagvibsix/")
+    os.system("source activate diagvibsix")
+    os.system("pip install -e .")
+    os.chdir("./../..")
     main()

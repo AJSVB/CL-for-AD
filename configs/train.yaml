@@ -3,7 +3,7 @@
 # specify here default training configuration
 defaults:
   - _self_
-  - datamodule: CIFAR_CL.yaml
+  - datamodule: DIAGVIB.yaml
   - model: MSAD.yaml
   - callbacks: default.yaml
   - logger: wandb.yaml # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
@@ -33,7 +33,7 @@ defaults:
 original_work_dir: ${hydra:runtime.cwd}
 
 # path to folder with data
-data_dir: ${original_work_dir}/data/
+data_dir: "/cluster/project/jbuhmann/jcarvalho/multi-env/diagvibsix_data/" #${original_work_dir}/data/
 
 # pretty print config at the start of the run using Rich library
 print_config: True
