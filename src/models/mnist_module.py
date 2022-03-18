@@ -58,7 +58,7 @@ class MSAD(LightningModule):
         self.total_loss, self.total_num = 0.0, 0
         self.model.eval()
         self.loss = 100 #Dummy value
-        self.printing_cosine_similarity_experiment = False
+        self.printing_cosine_similarity_experiment = True
 
 
     def training_step(self, batch: Any, batch_idx: int):
@@ -151,7 +151,6 @@ class MSAD(LightningModule):
 
     def run_epoch(self, batch):
         (img1, img2), y = batch
-        print(y)
     #    self.optimizer.zero_grad()
 
         out_1 = self.model(img1)
@@ -229,44 +228,70 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
         return X[:constant_closest]
     all_labels = np.unique(normal_labels)
 
+
+
+
+
+
+
     lis = [euclidean_distances,cosine_similarity]
     for i in range(2):
         dist_metric = lis[i]
-        for label in all_labels:
-            label_idx = normal_labels == label
-            label_data = normal_data[label_idx]
+
+        if False:
+            for label in all_labels:
+                label_idx = normal_labels == label
+                label_data = normal_data[label_idx]
+                anomalous_outer_similarity=0
+                for anomalous_sample in f(anomalous_data):
+                    distances = dist_metric([anomalous_sample],label_data)
+                    distance_idx = np.argsort(distances)[0]
+                    if(i==1):
+                        distance_idx=distance_idx[::-1]
+                    all_closest = g(label_data[distance_idx])
+                    anomalous_outer_similarity+=np.mean(dist_metric(all_closest,[anomalous_sample]))
+                print("similarity between anomalies and closest samples from environment " + str(label) + " using distance metric " + str(dist_metric) +
+                          " : " + str((anomalous_outer_similarity/len(f(anomalous_data)))))
+
+        if True:
+            anomalous_outer_similarity = 0
+            label_data = normal_data
+
+            distances = dist_metric(anomalous_data, label_data)
+            distances = np.mean(distances,axis = 1)
+            distance_idx = np.argsort(distances)
+            if (i == 1):
+                distance_idx = distance_idx[::-1]
+            anomalous_data = anomalous_data[distance_idx]
+            for anomalous_sample in f(anomalous_data):
+                distances = dist_metric([anomalous_sample], label_data)
+                distance_idx = np.argsort(distances)[0]
+                if (i == 1):
+                    distance_idx = distance_idx[::-1]
+                all_closest = g(label_data[distance_idx])
+                anomalous_outer_similarity += np.mean(dist_metric(all_closest, [anomalous_sample]))
+
+
+        else:
             anomalous_outer_similarity=0
             for anomalous_sample in f(anomalous_data):
+                label_data= normal_data
                 distances = dist_metric([anomalous_sample],label_data)
                 distance_idx = np.argsort(distances)[0]
-                if(i==1):
-                    distance_idx=distance_idx[::-1]
+                if (i ==1):
+                    distance_idx = distance_idx[::-1]
                 all_closest = g(label_data[distance_idx])
                 anomalous_outer_similarity+=np.mean(dist_metric(all_closest,[anomalous_sample]))
-            print("similarity between anomalies and closest samples from environment " + str(label) + " using distance metric " + str(dist_metric) +
-                      " : " + str((anomalous_outer_similarity/len(f(anomalous_data)))))
 
-
-
-        anomalous_outer_similarity=0
-        for anomalous_sample in f(anomalous_data):
-            label_data= normal_data
-            distances = dist_metric([anomalous_sample],label_data)
-            distance_idx = np.argsort(distances)[0]
-            if (i ==1):
-                distance_idx = distance_idx[::-1]
-            all_closest = g(label_data[distance_idx])
-            anomalous_outer_similarity+=np.mean(dist_metric(all_closest,[anomalous_sample]))
-
-        normal_outer_similarity=0
-        for normal_sample in f(f(normal_data)):
-            label_data= normal_data
-            distances = dist_metric([normal_sample],label_data)
-            distance_idx = np.argsort(distances)[0]
-            if (i ==1):
-                distance_idx = distance_idx[::-1]
-            all_closest = g(label_data[distance_idx][1:])
-            normal_outer_similarity+=np.mean(dist_metric(all_closest,[normal_sample]))
+            normal_outer_similarity=0
+            for normal_sample in f(f(normal_data)):
+                label_data= normal_data
+                distances = dist_metric([normal_sample],label_data)
+                distance_idx = np.argsort(distances)[0]
+                if (i ==1):
+                    distance_idx = distance_idx[::-1]
+                all_closest = g(label_data[distance_idx][1:])
+                normal_outer_similarity+=np.mean(dist_metric(all_closest,[normal_sample]))
 
 
         print("similarity between anomalies and closest normal samples using distance metric " + str(dist_metric) +

@@ -140,7 +140,7 @@ class Euler(Node):
         bsub = 'bsub ' + N + J + '-n ' + str(int(gpus * 2)) + ' -W ' + str(
             gpu_q) + ':00 -R "rusage[mem=10000,ngpus_excl_p=' + str(gpus) + ']" '
         call = []
-        for i in range(6):
+        for i in range(1):
             call.append(bsub + callee(i) + ';')
 
 
