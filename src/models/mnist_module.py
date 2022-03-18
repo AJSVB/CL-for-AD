@@ -217,17 +217,20 @@ def tsne(data,labels,name):
 
 
 
-def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels , name,reduction_factor=10):
+def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels , name,reduction_factor=10,constant_closest = 2):
     from sklearn.metrics.pairwise import cosine_similarity
     from sklearn.metrics.pairwise import euclidean_distances
 
     def f(X):
         return X[:int(len(X)/reduction_factor)]
 
+    def g(X):
+        return X[:constant_closest]
     all_labels = np.unique(normal_labels)
 
-
-    for dist_metric in [euclidean_distances,cosine_similarity]:
+    lis = [euclidean_distances,cosine_similarity]
+    for i in range(2):
+        dist_metric = lis[i]
         for label in all_labels:
             label_idx = normal_labels == label
             label_data = normal_data[label_idx]
@@ -235,24 +238,41 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
             for anomalous_sample in f(anomalous_data):
                 distances = dist_metric([anomalous_sample],label_data)
                 distance_idx = np.argsort(distances)[0]
-                if(dist_metric==cosine_similarity):
+                if(i==1):
                     distance_idx=distance_idx[::-1]
-                ten_percent_closest = f(label_data[distance_idx])
-                anomalous_outer_similarity+=np.mean(dist_metric(ten_percent_closest,[anomalous_sample]))
+                all_closest = g(label_data[distance_idx])
+                anomalous_outer_similarity+=np.mean(dist_metric(all_closest,[anomalous_sample]))
             print("similarity between anomalies and closest samples from environment " + str(label) + " using distance metric " + str(dist_metric) +
                       " : " + str((anomalous_outer_similarity/len(f(anomalous_data)))))
+
+
 
         anomalous_outer_similarity=0
         for anomalous_sample in f(anomalous_data):
             label_data= normal_data
             distances = dist_metric([anomalous_sample],label_data)
             distance_idx = np.argsort(distances)[0]
-            if (dist_metric == cosine_similarity):
+            if (i ==1):
                 distance_idx = distance_idx[::-1]
-            ten_percent_closest = f(label_data[distance_idx])
-            anomalous_outer_similarity+=np.mean(dist_metric(ten_percent_closest,[anomalous_sample]))
-            print("similarity between anomalies and closest normal samples using distance metric " + str(dist_metric) +
+            all_closest = g(label_data[distance_idx])
+            anomalous_outer_similarity+=np.mean(dist_metric(all_closest,[anomalous_sample]))
+
+        normal_outer_similarity=0
+        for normal_sample in f(f(normal_data)):
+            label_data= normal_data
+            distances = dist_metric([normal_sample],label_data)
+            distance_idx = np.argsort(distances)[0]
+            if (i ==1):
+                distance_idx = distance_idx[::-1]
+            all_closest = g(label_data[distance_idx][1:])
+            normal_outer_similarity+=np.mean(dist_metric(all_closest,[normal_sample]))
+
+
+        print("similarity between anomalies and closest normal samples using distance metric " + str(dist_metric) +
                       " : " + str(anomalous_outer_similarity/len(f(anomalous_data))))
+
+        print("similarity between normal samples and closest normal samples using distance metric " + str(dist_metric) +
+                      " : " + str(normal_outer_similarity/len(f(f(normal_data)))))
 
 
 
@@ -267,12 +287,6 @@ def Cosine_similarity(normal_data, normal_labels, anomalous_data,anomalous_label
 
     def cosine_similarity1(X,Y=None):
         return [np.mean(cosine_similarity(X,Y))]
-
-
-
-
-
-
     #TODO Here I assume that anomalous_labels = 0
     print("we get here I suppose?")
     normal_inner_similarity = []

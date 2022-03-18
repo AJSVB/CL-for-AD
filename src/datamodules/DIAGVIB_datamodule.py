@@ -88,7 +88,6 @@ class Transform:
                ])
 
     def __call__(self, x):
-        print(x)
         x_1 = self.moco_transform(x)
         x_2 = self.moco_transform(x)
         return x_1, x_2
@@ -151,9 +150,13 @@ class DIAGVIBModule(LightningDataModule):
             from torch import load
             from copy import deepcopy
 
-            def get_diagvib(PATH):
+            def get_diagvib(PATH,exp_number):
                 lis = ["shape", "hue", "texture", "lightness", "position", "scale"]
                 for e, mode in enumerate(lis):
+                    print(e)
+                    if e != exp_number:
+                        break
+
                     nextmode = lis[(e + 1) % len(lis)]
                     name = "normal-" + mode + "_anomalous-" + nextmode + "_"
                     train = torch.load(PATH + name + 'data_train.pt')
@@ -162,17 +165,11 @@ class DIAGVIBModule(LightningDataModule):
                     train_env0 = train.dataset_spec['modes'][0]['specification']['objs'][0][nextmode]
                     train_env1 = train.dataset_spec['modes'][1]['specification']['objs'][0][nextmode]
                     normal_label = train.dataset_spec['modes'][1]['specification']['objs'][0][mode]
-                    # print(train_env0)
-                    # print(normal_label)
-                    # for a in train.dataset.task_labels:
-                    #    print(a)
-                    #    print(train_env0)
-                    #    print(str(a)==str(train_env0))
                     train.dataset.task_labels = [int(a != train_env0) for a in train.dataset.task_labels]
                     test.dataset.task_labels = [int(a == normal_label) for a in test.dataset.task_labels] #targets?
                     return train, test
 
-            train, test = get_diagvib(self.hparams.data_dir)
+            train, test = get_diagvib(self.hparams.data_dir,self.hparams.label_class)
 
 
 

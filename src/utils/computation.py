@@ -134,6 +134,14 @@ class Euler(Node):
         else:
             experiment_arguments = ""
 
+        def callee(experiment_arguments):
+            return "'python " + run_script + " " + str(experiment_arguments) + "' "
+
+        call = ""
+        for i in range(6):
+            call+=callee(i)
+
+
              #'source .bash_profile; \ #TODO doesnot work for me (I dont have conda)
         command = 'cd ' + self.project_path + '; ' \
                   'module load gcc/8.2.0; ' \
@@ -141,8 +149,8 @@ class Euler(Node):
                   'module load cuda/11.3.1; ' \
                   'module load eth_proxy; ' \
                   'pip install -r requirements.txt; ' \
-                  'bsub ' + N + J + '-n '+str(int(gpus*2))+' -W ' +str(gpu_q)+ ':00 -R "rusage[mem=10000,ngpus_excl_p='+str(gpus)+']" ' \
-                  "'python " + run_script + " "+ experiment_arguments + "' " #TODO
+                  'bsub ' + N + J + '-n '+str(int(gpus*2))+' -W ' +str(gpu_q)+ ':00 -R "rusage[mem=10000,ngpus_excl_p='+str(gpus)+']" ' + call
+
 
         # command = 'mkdir test'
 
