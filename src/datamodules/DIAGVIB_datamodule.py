@@ -155,7 +155,7 @@ class DIAGVIBModule(LightningDataModule):
                 for e, mode in enumerate(lis):
                     print(e)
                     if e != exp_number:
-                        break
+                        continue
 
                     nextmode = lis[(e + 1) % len(lis)]
                     name = "normal-" + mode + "_anomalous-" + nextmode + "_"
@@ -165,8 +165,8 @@ class DIAGVIBModule(LightningDataModule):
                     train_env0 = train.dataset_spec['modes'][0]['specification']['objs'][0][nextmode]
                     train_env1 = train.dataset_spec['modes'][1]['specification']['objs'][0][nextmode]
                     normal_label = train.dataset_spec['modes'][1]['specification']['objs'][0][mode]
-                    train.dataset.task_labels = [int(a != train_env0) for a in train.dataset.task_labels]
-                    test.dataset.task_labels = [int(a == normal_label) for a in test.dataset.task_labels] #targets?
+                    train.dataset.task_labels =  [int(a != train_env0) for a in train.dataset.task_labels]
+                    test.dataset.task_labels = [int(a != normal_label) for a in test.dataset.task_labels] #targets?
                     return train, test
 
             train, test = get_diagvib(self.hparams.data_dir,self.hparams.label_class)

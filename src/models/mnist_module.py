@@ -128,6 +128,7 @@ class MSAD(LightningModule):
 
     def test_step(self, batch: Any, batch_idx: int):
         x, y = batch
+        print(y)
         features = self.model(x)
         self.test_feature_space.append(features)
         self.test_labels.append(y)
@@ -150,7 +151,7 @@ class MSAD(LightningModule):
 
     def run_epoch(self, batch):
         (img1, img2), y = batch
-
+        print(y)
     #    self.optimizer.zero_grad()
 
         out_1 = self.model(img1)

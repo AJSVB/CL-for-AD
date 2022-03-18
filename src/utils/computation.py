@@ -135,11 +135,14 @@ class Euler(Node):
             experiment_arguments = ""
 
         def callee(experiment_arguments):
-            return "'python " + run_script + " " + str(experiment_arguments) + "' "
+            return "'python " + run_script + " " + '+datamodule="{label_class: '+str(experiment_arguments)+'}"' + "' "
 
-        call = ""
+        bsub = 'bsub ' + N + J + '-n ' + str(int(gpus * 2)) + ' -W ' + str(
+            gpu_q) + ':00 -R "rusage[mem=10000,ngpus_excl_p=' + str(gpus) + ']" '
+        call = []
         for i in range(6):
-            call+=callee(i)
+            call.append(bsub + callee(i) + ';')
+
 
 
              #'source .bash_profile; \ #TODO doesnot work for me (I dont have conda)
@@ -149,8 +152,7 @@ class Euler(Node):
                   'module load cuda/11.3.1; ' \
                   'module load eth_proxy; ' \
                   'pip install -r requirements.txt; ' \
-                  'bsub ' + N + J + '-n '+str(int(gpus*2))+' -W ' +str(gpu_q)+ ':00 -R "rusage[mem=10000,ngpus_excl_p='+str(gpus)+']" ' + call
-
+                    "" + "".join(call)
 
         # command = 'mkdir test'
 
@@ -175,7 +177,10 @@ class Euler(Node):
 
         subprocess.Popen("rsync -ru /home/antoine/CL-for-AD/src ascardigli@euler.ethz.ch:CL-for-AD --delete", shell=True, stdout=subprocess.PIPE)
 
-        time.sleep(1)
+        #subprocess.Popen("rsync -ru /home/antoine/CL-for-AD/data/diagvibsix ascardigli@euler.ethz.ch:CL-for-AD/data", shell=True, stdout=subprocess.PIPE)
+
+
+        time.sleep(3)
 
 
         # submit the job to Leonhard

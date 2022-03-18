@@ -8,7 +8,7 @@ dotenv.load_dotenv(override=True)
 
 
 @hydra.main(config_path="configs/", config_name="train.yaml")
-def main(config: DictConfig,exp_number):
+def main(config: DictConfig):
 
     # Imports can be nested inside @hydra.main to optimize tab completion
     # https://github.com/facebookresearch/hydra/issues/934
@@ -17,21 +17,15 @@ def main(config: DictConfig,exp_number):
 
     # Applies optional utilities
     utils.extras(config)
-    if exp_number != None:
-        config['datamodule']['label_class'] = exp_number
-    # Train model
+
     return train(config)
 
 
 if __name__ == "__main__":
     import os
-    import sys
-    if(len(sys.argv)>1):
-        i = sys.argv[1]
-    else:
-        i = None
+
     os.chdir("./data/diagvibsix/")
     os.system("source activate diagvibsix")
     os.system("pip install -e .")
     os.chdir("./../..")
-    main(i)
+    main()
