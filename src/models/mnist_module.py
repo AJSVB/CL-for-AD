@@ -270,7 +270,8 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
                     distance_idx = distance_idx[::-1]
                 all_closest = g(label_data[distance_idx])
                 anomalous_outer_similarity += np.mean(dist_metric(all_closest, [anomalous_sample]))
-
+            print("similarity between 10% hardest anomalies and closest normal samples using distance metric " + str(dist_metric) +
+                          " : " + str(anomalous_outer_similarity/len(f(anomalous_data))))
 
         else:
             anomalous_outer_similarity=0
@@ -294,11 +295,11 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
                 normal_outer_similarity+=np.mean(dist_metric(all_closest,[normal_sample]))
 
 
-        print("similarity between anomalies and closest normal samples using distance metric " + str(dist_metric) +
-                      " : " + str(anomalous_outer_similarity/len(f(anomalous_data))))
+            print("similarity between anomalies and closest normal samples using distance metric " + str(dist_metric) +
+                          " : " + str(anomalous_outer_similarity/len(f(anomalous_data))))
 
-        print("similarity between normal samples and closest normal samples using distance metric " + str(dist_metric) +
-                      " : " + str(normal_outer_similarity/len(f(f(normal_data)))))
+            print("similarity between normal samples and closest normal samples using distance metric " + str(dist_metric) +
+                          " : " + str(normal_outer_similarity/len(f(f(normal_data)))))
 
 
 
