@@ -149,6 +149,9 @@ class CIFARDataModule(LightningDataModule):
             else:
                 idx = np.array(self.trainset.targets) != self.hparams.label_class
 
+            def f(X):
+                return X[:int(len(X)/10)]
+
 
             self.trainset.data = self.trainset.data[idx]
             self.trainset.targets = [self.trainset.targets[i] for i, flag in enumerate(idx, 0) if flag]
@@ -158,6 +161,15 @@ class CIFARDataModule(LightningDataModule):
             self.trainset_1.targets = [self.trainset_1.targets[i] for i, flag in enumerate(idx, 0) if flag]
 
             self.testset.targets = [int(t == self.hparams.label_class) for t in self.testset.targets]
+
+            self.trainset.data= f(self.trainset.data)
+            self.trainset.targets = f(self.trainset.targets)
+            self.trainset_1.data= f(self.trainset_1.data)
+            self.trainset_1.targets= f(self.trainset_1.targets)
+            self.testset.data=f(self.testset.data)
+            self.testset.targets= f(self.testset.targets)
+
+
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self.trainset_1, batch_size=self.hparams.batch_size, shuffle=True,
