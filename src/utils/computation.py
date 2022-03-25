@@ -93,7 +93,7 @@ class Leonhard(Node):
         print(command)
         print("Sleep for 3 seconds..")
         import time
-        time.sleep(3)
+        time.sleep(5)
 
         # submit the job to Leonhard
         subprocess.Popen(["ssh", "%s" % "jcarvalho@login.leonhard.ethz.ch", command],

@@ -21,6 +21,24 @@ import random
 import torch.nn.functional as F
 from sklearn.metrics import roc_auc_score
 
+from torch.distributions.multivariate_normal import MultivariateNormal
+from torch.distributions.beta import Beta
+from torch.distributions.cauchy import Cauchy
+from torch.distributions.chi2 import Chi2
+from torch.distributions.dirichlet import Dirichlet
+from torch.distributions.fishersnedecor import FisherSnedecor
+from torch.distributions.gamma import Gamma
+from torch.distributions.gumbel import Gumbel
+from torch.distributions.kumaraswamy import Kumaraswamy
+from torch.distributions.laplace import Laplace
+from torch.distributions.pareto import Pareto
+from torch.distributions.poisson import Poisson
+from torch.distributions.studentT import StudentT
+from torch.distributions.von_mises import VonMises
+from torch.distributions.weibull import Weibull
+
+import torch.nn as nn
+
 
 
 class MSAD(LightningModule):
@@ -58,8 +76,14 @@ class MSAD(LightningModule):
         self.total_loss, self.total_num = 0.0, 0
         self.model.eval()
         self.loss = 100 #Dummy value
-        self.printing_cosine_similarity_experiment = True
-
+        self.printing_cosine_similarity_experiment = False
+        self.vae = False
+        self.mu = nn.Linear(512, 512)
+        self.var = nn.Linear(512,512)
+        self.automatic_optimization = False
+        self.sum_mu = []
+        self.sum_sig = []
+        self.vae2 = True
 
     def training_step(self, batch: Any, batch_idx: int):
             self.model.eval()
@@ -71,8 +95,11 @@ class MSAD(LightningModule):
             # we can return here dict with any tensors
             # and then read it in some callback or in `training_epoch_end()`` below
             # remember to always return loss from `training_step()` or else backpropagation will fail!
-            return {"loss": loss}
-
+            #return {"loss": loss}
+            optimizer = self.optimizers()
+            optimizer.zero_grad()
+            self.manual_backward(loss)
+            optimizer.step()
 
     def training_epoch_end(self, outputs: List[Any]):
         loss = self.total_loss / self.total_num
@@ -81,8 +108,15 @@ class MSAD(LightningModule):
       #  self.log("train/loss", loss, on_epoch=True, prog_bar=True)
 
 
-    def validation_step(self, batch: Any, batch_idx: int):
+    def on_validation_model_eval(self, *args, **kwargs):
+        super().on_validation_model_eval(*args, **kwargs)
 
+        if not self.first_epoch and self.trainer.max_epochs - 1 != self.current_epoch and  self.vae:
+            torch.set_grad_enabled(True)
+
+
+
+    def validation_step(self, batch: Any, batch_idx: int):
         if self.first_epoch:
             x, y = batch
             features = self.model(x)
@@ -95,18 +129,38 @@ class MSAD(LightningModule):
             self.val_feature_space.append(features)
             self.val_labels.append(y)
 
+
+            if self.vae:
+                mu,sig = self.encode(features)
+                self.sum_mu += [mu]
+                self.sum_sig += [sig]
+
+
+
+        elif self.vae:
+            x, y = batch
+            features = self.model(x)
+            loss = self.loss_fc(features) * 100000
+            self.log("train/KLVAE", loss, on_epoch=True, prog_bar=True)
+            optimizer = self.optimizers()
+            optimizer.zero_grad()
+            self.manual_backward(loss)
+            optimizer.step()
+
+
     def validation_epoch_end(self, outputs: List[Any]):
         if self.first_epoch:
             self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy()
             val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
+            idx = np.array(val_labels) != 0
+
             if(self.printing_cosine_similarity_experiment):
-                idx = np.array(val_labels) != 0
                 Joao_similarity(self.train_feature_space[idx],val_labels[idx],self.train_feature_space[~idx],0,"before_training")
-                self.train_feature_space = self.train_feature_space[idx]
-
 #            self.center,_ = torch.FloatTensor(self.train_feature_space).median(dim=0)
+            self.train_feature_space = self.train_feature_space[idx]
             self.center = torch.FloatTensor(self.train_feature_space).mean(dim=0)
-
+            print(self.center.shape)
+            print((self.center-self.train_feature_space).std())
             if self.hparams.angular:
                 self.center = F.normalize(self.center, dim=-1)
             self.center = self.center.to(self.device)
@@ -114,11 +168,24 @@ class MSAD(LightningModule):
             self.val_labels = []
         elif self.trainer.max_epochs - 1 == self.current_epoch:
             self.treated_val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
+            val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
+            idx = np.array(val_labels) != 0
             if(self.printing_cosine_similarity_experiment):
-                val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
-                idx = np.array(val_labels) != 0
                 Joao_similarity(self.treated_val_feature_space[idx],val_labels[idx],self.treated_val_feature_space[~idx],0,"after_training")
-                self.treated_val_feature_space = self.treated_val_feature_space[idx]
+            self.treated_val_feature_space = self.treated_val_feature_space[idx]
+
+            self.latent_feature_space = torch.FloatTensor(self.treated_val_feature_space)
+
+            from fitter import Fitter
+            n = self.latent_feature_space.shape[0]
+            f = Fitter(self.latent_feature_space[torch.randperm(n)][:int(n/10)])
+            f.fit()
+            print(f.summary(Nbest=40).to_string())
+
+            if self.vae:
+                print(self.sum_mu)
+                print(np.mean(self.sum_mu))
+                print(np.mean(self.sum_sig))
 
            # tsne(self.treated_val_feature_space,val_labels,"after_training")
 
@@ -128,7 +195,6 @@ class MSAD(LightningModule):
 
     def test_step(self, batch: Any, batch_idx: int):
         x, y = batch
-        print(y)
         features = self.model(x)
         self.test_feature_space.append(features)
         self.test_labels.append(y)
@@ -137,8 +203,15 @@ class MSAD(LightningModule):
         self.treated_test_feature_space = torch.cat(self.test_feature_space, dim=0).contiguous().cpu().numpy()
         test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
         distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
-        auc = roc_auc_score(test_labels, distances)
 
+
+
+        for i in range(16):
+            distr = get_distr(i)
+            mle_args = get_mle(distr,torch.FloatTensor(self.treated_val_feature_space))
+            distances = prob(mle_args,torch.cat(self.test_feature_space, dim=0).contiguous().cpu(),distr)
+            auc = roc_auc_score(test_labels, distances)
+            print(auc)
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
@@ -158,16 +231,73 @@ class MSAD(LightningModule):
         out_1 = out_1 - self.center
         out_2 = out_2 - self.center
 
-        loss = contrastive_loss(out_1, out_2)
+        loss = contrastive_loss(out_1, out_2) * 1e-10
 
         if self.hparams.angular:
-            loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean())
+            loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean()) * 1e-10
 
 
         self.total_num += img1.size(0)
         self.total_loss += loss.item() * img1.size(0)
 
         return loss
+
+    def encode(self, x):
+        # x = torch.flatten(x)
+        print(x.shape)
+        mu = self.mu(x) #.mean()
+        log_var = self.var(x) #x.var()
+        print(mu.shape)
+        return mu, log_var
+
+    def reparameterize(self,mu,log_var):
+        if self.training:
+            #Reparametrization trick
+            std = torch.exp(0.5 * log_var)
+            epsilon = torch.tandn_like(std)
+        else:
+            epsilon= 0
+
+        return mu + std * epsilon
+
+    def VAE_forward(self,x):
+        mu, log_var = self.encode(x)
+        norm = self.reparameterize(mu,log_var) #Useless?
+        return (norm, x, mu,log_var)
+
+    def loss_fc(self,x,*args):
+        (norm, x, mu, log_var) = self.VAE_forward(x)
+        KL_divergence = torch.mean(-0.5 * torch.sum((1 + log_var - mu**2 - torch.exp(log_var)),dim=1), dim=0)
+        KL_divergence.required_grad = True
+        return KL_divergence
+
+
+"""
+def get_distr(i):
+    list = [MultivariateNormal,Beta,Cauchy,Chi2,Dirichlet,FisherSnedecor,Gamma,Gumbel,Kumaraswamy,Laplace,Pareto,Poisson,StudentT,VonMises,Weibull]
+    return list[i]
+
+
+
+def get_ml_args(distr,data):
+    if distr == MultivariateNormal:
+        return (data.mean(dim=0) , torch.cov(data.transpose(0, 1)))
+    elif distr == Cauchy:
+    elif distr == Chi2:
+    elif distr == Dirichlet:
+    elif distr == FisherSnedecor:
+    elif distr == Gamma:
+    elif distr == Gumbel:
+    elif distr == Kumaraswamy:
+    elif distr == Laplace:
+    elif distr == Pareto:
+    elif distr == Poisson:
+    elif distr == StudentT:
+    elif distr == VonMises:
+    elif distr == Weibull:
+"""
+
+
 
 
 def knn_score(train_set, test_set, n_neighbours=2):
@@ -179,7 +309,11 @@ def knn_score(train_set, test_set, n_neighbours=2):
     D, _ = index.search(test_set, n_neighbours)
     return np.sum(D, axis=1)
 
+def prob(args,test_set,distribution):
 
+    from torch.distributions.multivariate_normal import MultivariateNormal
+    multivariate = distribution(*args)
+    return 1-multivariate.log_prob(test_set)
 def contrastive_loss(out_1, out_2):
     out_1 = F.normalize(out_1, dim=-1)
     out_2 = F.normalize(out_2, dim=-1)
@@ -197,7 +331,7 @@ def contrastive_loss(out_1, out_2):
     pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temp)
     # [2*B]
     pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
-    loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+    loss = ( torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
     return loss
 
 
