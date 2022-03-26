@@ -69,6 +69,8 @@ class MSAD(LightningModule):
         self.sum_mu = []
         self.sum_sig = []
         self.vae2 = True
+        self.multi_univariate = False
+
 
     def training_step(self, batch: Any, batch_idx: int):
             self.model.eval()
@@ -161,22 +163,31 @@ class MSAD(LightningModule):
 
             self.normaliser = np.mean(self.treated_val_feature_space,axis=0)
             data = self.treated_val_feature_space - self.normaliser
-            from fitter import  Fitter
-            print(data.shape)
-            self.params = []
-            for i in range(512):
-                f = Fitter(data[:,i],timeout=100)
-                f.fit()
-           #     print(f.summary( Nbest=1).to_string())
-                self.params.append(f.get_best())
+
+
+            if self.multi_univariate:
+                from fitter import  Fitter
+                self.params = []
+                for i in range(512):
+                    f = Fitter(data[:,i],timeout=10,distributions=["beta","chi","genexpon","halfgennorm","johnsonsb","mielke","nakagami","pearson3"])
+                    f.fit()
+                    self.params.append(f.get_best())
+
+            else:
+                    dof = 10
+                    cov, uni, results = t(data,dof=dof)
+                    print(dof)
+                    print(results[::10])
+                    self.params = {"loc":uni,"shape":cov,"df":dof}
+
+
+
+
 
             if self.vae:
                 print(self.sum_mu)
                 print(np.mean(self.sum_mu))
                 print(np.mean(self.sum_sig))
-
-           # tsne(self.treated_val_feature_space,val_labels,"after_training")
-
 
 
         self.log("val/acc", -self.loss, on_epoch=True, prog_bar=True)
@@ -192,33 +203,32 @@ class MSAD(LightningModule):
         test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
         distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
 
-        from scipy.stats import dirichlet
         test_data = self.treated_test_feature_space - self.normaliser
-        pdf = np.array([])
-        for e,dict in enumerate(self.params):
-            for a in dict:
-                b = dict[a]
-                dist = eval("scipy.stats." + a)
-                result = dist.pdf(test_data[:,e],**b)
-                if e==0:
-                    pdf = result
-                else:
-                    pdf = np.vstack((pdf,result))
 
-        def reducer(pdf,case):
-            #given pdfs per dimension, we reduce to a single dimension pdf.
-            if case == 0:
-                return pdf.mean(1)
-            if case == 1:
-                return np.log(pdf+1e-12).sum(1)
-            if case == 2:
-                return pdf.shape[1]/(1/pdf).sum(1)
-        print(self.params)
-        print(pdf.shape)
-        for i in range(3):
+        if self.multi_univariate:
+            pdf = np.array([])
+            for e,dict in enumerate(self.params):
+                for a in dict:
+                    b = dict[a]
+                    dist = eval("scipy.stats." + a)
+                    result = dist.pdf(test_data[:,e],**b)
+                    if e==0:
+                        pdf = result
+                    else:
+                        pdf = np.vstack((pdf,result))
+            print(self.params)
+            for i in range(3):
+                auc = roc_auc_score(test_labels, - reducer(pdf.transpose(),i))
+                print(auc)
+        else:
 
-            auc = roc_auc_score(test_labels, - reducer(pdf.transpose(),i))
+            pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
+            auc = roc_auc_score(test_labels, - pdf.transpose())
             print(auc)
+
+            self.params.update({'df':8})
+            pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
+            auc = roc_auc_score(test_labels, - pdf.transpose())
 
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
 
@@ -293,31 +303,72 @@ def preprocess(x):
     return scaled
 
 
-"""
-def get_distr(i):
-    list = [MultivariateNormal,Beta,Cauchy,Chi2,Dirichlet,FisherSnedecor,Gamma,Gumbel,Kumaraswamy,Laplace,Pareto,Poisson,StudentT,VonMises,Weibull]
-    return list[i]
+def reducer(pdf, case):
+    # given pdfs per dimension, we reduce to a single dimension pdf.
+    if case == 0:
+        return pdf.mean(1)
+    if case == 1:
+        return np.log(pdf + 1e-12).sum(1)
+    if case == 2:
+        return pdf.shape[1] / (1 / pdf).sum(1)
+
+import numpy as np
+from scipy import special
 
 
+def t(X, dof=3.5, iter=20000, eps=1e-8):
+    '''t
+    Estimates the mean and covariance of the dataset
+    X (rows are datapoints) assuming they come from a
+    student t likelihood with no priors and dof degrees
+    of freedom using the EM algorithm.
+    Implementation based on the algorithm detailed in Murphy
+    Section 11.4.5 (page 362).
+    :param X: dataset
+    :type  X: np.array[n,d]
+    :param dof: degrees of freedom for likelihood
+    :type  dof: float > 2
+    :param iter: maximum EM iterations
+    :type  iter: int
+    :param eps: tolerance for EM convergence
+    :type  eps: float
+    :return: estimated covariance, estimated mean, list of
+             objectives at each iteration.
+    :rtype: np.array[d,d], np.array[d], list[float]
+    '''
+    # initialize parameters
+    D = X.shape[1]
+    N = X.shape[0]
+    cov = np.cov(X, rowvar=False)
+    mean = X.mean(axis=0)
+    mu = X - mean[None, :]
+    delta = np.einsum('ij,ij->i', mu, np.linalg.solve(cov, mu.T).T)
+    z = (dof + D) / (dof + delta)
+    obj = [
+        -N * np.linalg.slogdet(cov)[1] / 2 - (z * delta).sum() / 2 \
+        - N * special.gammaln(dof / 2) + N * dof * np.log(dof / 2) / 2 + dof * (np.log(z) - z).sum() / 2
+    ]
 
-def get_ml_args(distr,data):
-    if distr == MultivariateNormal:
-        return (data.mean(dim=0) , torch.cov(data.transpose(0, 1)))
-    elif distr == Cauchy:
-    elif distr == Chi2:
-    elif distr == Dirichlet:
-    elif distr == FisherSnedecor:
-    elif distr == Gamma:
-    elif distr == Gumbel:
-    elif distr == Kumaraswamy:
-    elif distr == Laplace:
-    elif distr == Pareto:
-    elif distr == Poisson:
-    elif distr == StudentT:
-    elif distr == VonMises:
-    elif distr == Weibull:
-"""
+    # iterate
+    for i in range(iter):
+        # M step
+        mean = (X * z[:, None]).sum(axis=0).reshape(-1, 1) / z.sum()
+        mu = X - mean.squeeze()[None, :]
+        cov = np.einsum('ij,ik->jk', mu, mu * z[:, None]) / N
 
+        # E step
+        delta = (mu * np.linalg.solve(cov, mu.T).T).sum(axis=1)
+        delta = np.einsum('ij,ij->i', mu, np.linalg.solve(cov, mu.T).T)
+        z = (dof + D) / (dof + delta)
+
+        # store objective
+        obj.append(
+            -N * np.linalg.slogdet(cov)[1] / 2 - (z * delta).sum() / 2 \
+            - N * special.gammaln(dof / 2) + N * dof * np.log(dof / 2) / 2 + dof * (np.log(z) - z).sum() / 2
+        )
+        if np.abs(obj[-1] - obj[-2]) < eps:
+            break
+    return cov, mean.squeeze(), obj
 
 
 
