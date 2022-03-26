@@ -1,6 +1,8 @@
 
 
 from typing import Any, List
+
+import numpy
 import numpy as np
 #import faiss
 import faiss
@@ -70,7 +72,7 @@ class MSAD(LightningModule):
         self.sum_sig = []
         self.vae2 = True
         self.multi_univariate = False
-
+        self.multi_t = False
 
     def training_step(self, batch: Any, batch_idx: int):
             self.model.eval()
@@ -173,13 +175,13 @@ class MSAD(LightningModule):
                     f.fit()
                     self.params.append(f.get_best())
 
+            elif self.multi_t:
+                dof = 10
+                cov, uni, results = t(data,dof=dof)
+                self.params = {"loc":uni,"shape":cov,"df":dof}
             else:
-                    dof = 10
-                    cov, uni, results = t(data,dof=dof)
-                    print(dof)
-                    print(results[::10])
-                    self.params = {"loc":uni,"shape":cov,"df":dof}
 
+                self.params = {"mean": data.mean(dim=0) , "cov":numpy.cov(data.transpose(0,1))}
 
 
 
@@ -220,14 +222,12 @@ class MSAD(LightningModule):
             for i in range(3):
                 auc = roc_auc_score(test_labels, - reducer(pdf.transpose(),i))
                 print(auc)
-        else:
-
+        elif self.multi_t:
             pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
             auc = roc_auc_score(test_labels, - pdf.transpose())
-            print(auc)
 
-            self.params.update({'df':8})
-            pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
+        else:
+            pdf = scipy.stats.multivariate_normal.logpdf(test_data,**self.params)
             auc = roc_auc_score(test_labels, - pdf.transpose())
 
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
