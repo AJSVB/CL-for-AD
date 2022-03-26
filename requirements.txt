@@ -25,7 +25,7 @@ torchvision==0.12.0
 tqdm==4.61.0
 typing-extensions==3.10.0.0
 
-fitter
+git+https://github.com/AJSVB/dirichlet.git#egg = dirichlet
 
 
 # --------- loggers --------- #

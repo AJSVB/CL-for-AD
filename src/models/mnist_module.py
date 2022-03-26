@@ -20,22 +20,7 @@ from PIL import ImageFilter
 import random
 import torch.nn.functional as F
 from sklearn.metrics import roc_auc_score
-
-from torch.distributions.multivariate_normal import MultivariateNormal
-from torch.distributions.beta import Beta
-from torch.distributions.cauchy import Cauchy
-from torch.distributions.chi2 import Chi2
-from torch.distributions.dirichlet import Dirichlet
-from torch.distributions.fishersnedecor import FisherSnedecor
-from torch.distributions.gamma import Gamma
-from torch.distributions.gumbel import Gumbel
-from torch.distributions.kumaraswamy import Kumaraswamy
-from torch.distributions.laplace import Laplace
-from torch.distributions.pareto import Pareto
-from torch.distributions.poisson import Poisson
-from torch.distributions.studentT import StudentT
-from torch.distributions.von_mises import VonMises
-from torch.distributions.weibull import Weibull
+import scipy.stats
 
 import torch.nn as nn
 
@@ -174,13 +159,9 @@ class MSAD(LightningModule):
                 Joao_similarity(self.treated_val_feature_space[idx],val_labels[idx],self.treated_val_feature_space[~idx],0,"after_training")
             self.treated_val_feature_space = self.treated_val_feature_space[idx]
 
-            self.latent_feature_space = torch.FloatTensor(self.treated_val_feature_space)
-
-            from fitter import Fitter
-            n = self.latent_feature_space.shape[0]
-            f = Fitter(self.latent_feature_space[torch.randperm(n)][:int(n/10)])
-            f.fit()
-            print(f.summary(Nbest=40).to_string())
+            data = preprocess(self.treated_val_feature_space)
+            import dirichlet as dir
+            self.params = dir.mle(data)
 
             if self.vae:
                 print(self.sum_mu)
@@ -204,14 +185,13 @@ class MSAD(LightningModule):
         test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
         distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
 
+        from scipy.stats import dirichlet
 
+        pdf_fitted = dirichlet.logpdf(preprocess(self.treated_test_feature_space).transpose(),self.params)
 
-        for i in range(16):
-            distr = get_distr(i)
-            mle_args = get_mle(distr,torch.FloatTensor(self.treated_val_feature_space))
-            distances = prob(mle_args,torch.cat(self.test_feature_space, dim=0).contiguous().cpu(),distr)
-            auc = roc_auc_score(test_labels, distances)
-            print(auc)
+        auc = roc_auc_score(test_labels, - pdf_fitted)
+        print(auc)
+
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
@@ -226,12 +206,17 @@ class MSAD(LightningModule):
         (img1, img2), y = batch
     #    self.optimizer.zero_grad()
 
+
+
         out_1 = self.model(img1)
         out_2 = self.model(img2)
         out_1 = out_1 - self.center
         out_2 = out_2 - self.center
 
-        loss = contrastive_loss(out_1, out_2) * 1e-10
+        loss = 0
+
+
+        loss += contrastive_loss(out_1, out_2) * 1e-10
 
         if self.hparams.angular:
             loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean()) * 1e-10
@@ -270,6 +255,14 @@ class MSAD(LightningModule):
         KL_divergence = torch.mean(-0.5 * torch.sum((1 + log_var - mu**2 - torch.exp(log_var)),dim=1), dim=0)
         KL_divergence.required_grad = True
         return KL_divergence
+
+def preprocess(x):
+    epsilon = 1e-8
+    min = x.min(1).reshape(-1, 1)
+    large = (x + epsilon - min).astype(np.float64)
+    norm = large.sum(1)
+    scaled = (large / norm.reshape(-1, 1).astype(np.float64))
+    return scaled
 
 
 """
