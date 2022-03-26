@@ -181,7 +181,7 @@ class MSAD(LightningModule):
                 self.params = {"loc":uni,"shape":cov,"df":dof}
             else:
 
-                self.params = {"mean": data.mean(dim=0) , "cov":numpy.cov(data.transpose(0,1))}
+                self.params = {"mean": data.mean(axis=0) , "cov":numpy.cov(data.transpose())}
 
 
 
