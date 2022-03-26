@@ -159,9 +159,16 @@ class MSAD(LightningModule):
                 Joao_similarity(self.treated_val_feature_space[idx],val_labels[idx],self.treated_val_feature_space[~idx],0,"after_training")
             self.treated_val_feature_space = self.treated_val_feature_space[idx]
 
-            data = preprocess(self.treated_val_feature_space)
-            import dirichlet as dir
-            self.params = dir.mle(data)
+            self.normaliser = np.mean(self.treated_val_feature_space,axis=0)
+            data = self.treated_val_feature_space - self.normaliser
+            from fitter import  Fitter
+            print(data.shape)
+            self.params = []
+            for i in range(512):
+                f = Fitter(data[:,i],timeout=100)
+                f.fit()
+           #     print(f.summary( Nbest=1).to_string())
+                self.params.append(f.get_best())
 
             if self.vae:
                 print(self.sum_mu)
@@ -186,11 +193,32 @@ class MSAD(LightningModule):
         distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
 
         from scipy.stats import dirichlet
+        test_data = self.treated_test_feature_space - self.normaliser
+        pdf = np.array([])
+        for e,dict in enumerate(self.params):
+            for a in dict:
+                b = dict[a]
+                dist = eval("scipy.stats." + a)
+                result = dist.pdf(test_data[:,e],**b)
+                if e==0:
+                    pdf = result
+                else:
+                    pdf = np.vstack((pdf,result))
 
-        pdf_fitted = dirichlet.logpdf(preprocess(self.treated_test_feature_space).transpose(),self.params)
+        def reducer(pdf,case):
+            #given pdfs per dimension, we reduce to a single dimension pdf.
+            if case == 0:
+                return pdf.mean(1)
+            if case == 1:
+                return np.log(pdf+1e-12).sum(1)
+            if case == 2:
+                return pdf.shape[1]/(1/pdf).sum(1)
+        print(self.params)
+        print(pdf.shape)
+        for i in range(3):
 
-        auc = roc_auc_score(test_labels, - pdf_fitted)
-        print(auc)
+            auc = roc_auc_score(test_labels, - reducer(pdf.transpose(),i))
+            print(auc)
 
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
 
