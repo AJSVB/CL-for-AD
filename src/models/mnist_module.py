@@ -25,7 +25,7 @@ from sklearn.metrics import roc_auc_score
 import scipy.stats
 
 import torch.nn as nn
-
+from sklearn.mixture import BayesianGaussianMixture,GaussianMixture
 
 
 class MSAD(LightningModule):
@@ -73,6 +73,7 @@ class MSAD(LightningModule):
         self.vae2 = True
         self.multi_univariate = False
         self.multi_t = False
+        self.dir_pro = True
 
     def training_step(self, batch: Any, batch_idx: int):
             self.model.eval()
@@ -179,8 +180,16 @@ class MSAD(LightningModule):
                 dof = 10
                 cov, uni, results = t(data,dof=dof)
                 self.params = {"loc":uni,"shape":cov,"df":dof}
-            else:
 
+            elif self.dir_pro:
+                self.dpgmm = []
+                self.dpgmm.append(BayesianGaussianMixture(n_components=200,n_init = 5, max_iter =1000,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=200,n_init = 5, max_iter =1000, covariance_type = 'spherical',weight_concentration_prior_type = "dirichlet_process").fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=200,n_init = 5, max_iter =1000,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=200,n_init = 5, max_iter =1000,covariance_type = 'diag',weight_concentration_prior_type = "dirichlet_process").fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=200,n_init = 5, max_iter =1000,covariance_type = 'full',weight_concentration_prior_type = "dirichlet_process").fit(data))
+
+            else:
                 self.params = {"mean": data.mean(axis=0) , "cov":numpy.cov(data.transpose())}
 
 
@@ -225,7 +234,11 @@ class MSAD(LightningModule):
         elif self.multi_t:
             pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
             auc = roc_auc_score(test_labels, - pdf.transpose())
-
+        elif self.dir_pro:
+            for a in self.dpgmm:
+                pdf = a.score_samples(test_data)
+                auc = roc_auc_score(test_labels, - pdf.transpose())
+                print(auc)
         else:
             pdf = scipy.stats.multivariate_normal.logpdf(test_data,**self.params)
             auc = roc_auc_score(test_labels, - pdf.transpose())
