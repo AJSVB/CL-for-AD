@@ -26,7 +26,7 @@ import scipy.stats
 
 import torch.nn as nn
 from sklearn.mixture import BayesianGaussianMixture,GaussianMixture
-
+from scipy.stats import vonmises
 
 class MSAD(LightningModule):
     """
@@ -73,7 +73,10 @@ class MSAD(LightningModule):
         self.vae2 = True
         self.multi_univariate = False
         self.multi_t = False
-        self.dir_pro = True
+        self.dir_pro = False
+        self.vonmises = True
+        self.tau = .5
+
 
     def training_step(self, batch: Any, batch_idx: int):
             self.model.eval()
@@ -101,8 +104,8 @@ class MSAD(LightningModule):
     def on_validation_model_eval(self, *args, **kwargs):
         super().on_validation_model_eval(*args, **kwargs)
 
-        if not self.first_epoch and self.trainer.max_epochs - 1 != self.current_epoch and  self.vae:
-            torch.set_grad_enabled(True)
+      #  if not self.first_epoch and self.trainer.max_epochs - 1 != self.current_epoch and  self.vae:
+       #     torch.set_grad_enabled(True)
 
 
 
@@ -138,11 +141,12 @@ class MSAD(LightningModule):
             optimizer.step()
 
 
+
     def validation_epoch_end(self, outputs: List[Any]):
         if self.first_epoch:
             self.train_feature_space = torch.cat(self.train_feature_space, dim=0).contiguous().cpu().numpy()
             val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
-            idx = np.array(val_labels) != 0
+            idx = np.array(val_labels) == 0
 
             if(self.printing_cosine_similarity_experiment):
                 Joao_similarity(self.train_feature_space[idx],val_labels[idx],self.train_feature_space[~idx],0,"before_training")
@@ -159,11 +163,12 @@ class MSAD(LightningModule):
         elif self.trainer.max_epochs - 1 == self.current_epoch:
             self.treated_val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
             val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
-            idx = np.array(val_labels) != 0
+            idx = np.array(val_labels) == 0
             if(self.printing_cosine_similarity_experiment):
                 Joao_similarity(self.treated_val_feature_space[idx],val_labels[idx],self.treated_val_feature_space[~idx],0,"after_training")
             self.treated_val_feature_space = self.treated_val_feature_space[idx]
-
+            print(np.min(np.linalg.norm(self.treated_val_feature_space, -1)))
+            print(np.max(np.linalg.norm(self.treated_val_feature_space, -1)))
             self.normaliser = np.mean(self.treated_val_feature_space,axis=0)
             data = self.treated_val_feature_space - self.normaliser
 
@@ -183,11 +188,18 @@ class MSAD(LightningModule):
 
             elif self.dir_pro:
                 self.dpgmm = []
-                self.dpgmm.append(BayesianGaussianMixture(n_components=200,n_init = 5, max_iter =1000,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=200,n_init = 5, max_iter =1000, covariance_type = 'spherical',weight_concentration_prior_type = "dirichlet_process").fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=200,n_init = 5, max_iter =1000,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=200,n_init = 5, max_iter =1000,covariance_type = 'diag',weight_concentration_prior_type = "dirichlet_process").fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=200,n_init = 5, max_iter =1000,covariance_type = 'full',weight_concentration_prior_type = "dirichlet_process").fit(data))
+#                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
+
+                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=2,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
+
+
+            elif self.vonmises:
+
+                self.sum_mu = [vonmises(self.tau,d) for d in data]
+                print(data.shape)
+                print(np.min(np.linalg.norm(data,-1)))
+                print(np.max(np.linalg.norm(data,-1)))
 
             else:
                 self.params = {"mean": data.mean(axis=0) , "cov":numpy.cov(data.transpose())}
@@ -235,10 +247,37 @@ class MSAD(LightningModule):
             pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
             auc = roc_auc_score(test_labels, - pdf.transpose())
         elif self.dir_pro:
-            for a in self.dpgmm:
-                pdf = a.score_samples(test_data)
-                auc = roc_auc_score(test_labels, - pdf.transpose())
+            if False:
+                for a in self.dpgmm:
+                    pdf = a.score_samples(test_data)
+                    auc = roc_auc_score(test_labels, - pdf.transpose())
+                    print(auc)
+                auc = roc_auc_score(test_labels,distances)
                 print(auc)
+            else:
+                idx = (test_labels == 0)
+                likelihood_mono_norm = np.mean(self.dpgmm[0].score_samples(test_data[idx]))
+                likelihood_dual_norm = np.mean(self.dpgmm[1].score_samples(test_data[idx]))
+
+                print("likelihood_mono" + str(likelihood_mono_norm))
+                print("likelihood_dual" + str(likelihood_dual_norm))
+
+                likelihood_mono_an = np.mean(self.dpgmm[0].score_samples(test_data[~idx]))
+                likelihood_dual_an = np.mean(self.dpgmm[1].score_samples(test_data[~idx]))
+
+                print("likelihood_mono" + str(likelihood_mono_an))
+                print("likelihood_dual" + str(likelihood_dual_an))
+
+                auc = roc_auc_score(test_labels,distances)
+
+        elif self.vonmises:
+            a=0
+            b=0
+            #for b in range(3):
+            predictions = predict_vonmises(test_data,self.sum_mu,a,b)
+            auc = roc_auc_score(test_labels, - predictions)
+            print(auc)
+
         else:
             pdf = scipy.stats.multivariate_normal.logpdf(test_data,**self.params)
             auc = roc_auc_score(test_labels, - pdf.transpose())
@@ -267,10 +306,10 @@ class MSAD(LightningModule):
         loss = 0
 
 
-        loss += contrastive_loss(out_1, out_2) * 1e-10
+        loss += contrastive_loss(out_1, out_2)# * 1e-10
 
         if self.hparams.angular:
-            loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean()) * 1e-10
+            loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean())# * 1e-10
 
 
         self.total_num += img1.size(0)
@@ -316,14 +355,28 @@ def preprocess(x):
     return scaled
 
 
-def reducer(pdf, case):
+
+def predict_vonmises(test_point,all_z,a=0,b=0):
+    temp = []
+    print("first"+str(a))
+    print("second"+str(b))
+    for point in test_point:
+        temp2 = []
+        for z in all_z:
+            temp2.append(z.pdf(point))
+        temp.append(reducer(reducer(temp2,a,dim=0),b,dim=0))
+    return np.array(temp)
+
+
+def reducer(pdf, case,dim=1):
     # given pdfs per dimension, we reduce to a single dimension pdf.
+    pdf = np.array(pdf)
     if case == 0:
-        return pdf.mean(1)
+        return pdf.mean(dim)
     if case == 1:
-        return np.log(pdf + 1e-12).sum(1)
+        return np.log(pdf + 1e-12).sum(dim)
     if case == 2:
-        return pdf.shape[1] / (1 / pdf).sum(1)
+        return pdf.shape[dim] / (1 / pdf).sum(dim)
 
 import numpy as np
 from scipy import special

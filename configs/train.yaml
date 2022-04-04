@@ -33,7 +33,7 @@ defaults:
 original_work_dir: ${hydra:runtime.cwd}
 
 # path to folder with data
-data_dir: "/cluster/project/jbuhmann/jcarvalho/multi-env/diagvibsix_data/" #${original_work_dir}/data/
+data_dir: "/cluster/project/jbuhmann/jcarvalho/multi-env/diagvibsix_data2/" #${original_work_dir}/data/
 
 # pretty print config at the start of the run using Rich library
 print_config: True
