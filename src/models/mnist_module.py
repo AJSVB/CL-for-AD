@@ -26,7 +26,7 @@ import scipy.stats
 
 import torch.nn as nn
 from sklearn.mixture import BayesianGaussianMixture,GaussianMixture
-from scipy.stats import vonmises
+from scipy.stats import vonmises,norm
 
 class MSAD(LightningModule):
     """
@@ -73,8 +73,8 @@ class MSAD(LightningModule):
         self.vae2 = True
         self.multi_univariate = False
         self.multi_t = False
-        self.dir_pro = False
-        self.vonmises = True
+        self.dir_pro = True
+        self.vonmises = False
         self.tau = .5
 
 
@@ -192,11 +192,11 @@ class MSAD(LightningModule):
 
                 self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
                 self.dpgmm.append(GaussianMixture(n_components=2,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
-
+                self.dpgmm.append(GaussianMixture(n_components=3,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
 
             elif self.vonmises:
 
-                self.sum_mu = [vonmises(self.tau,d) for d in data]
+                self.sum_mu = [norm(loc=d) for d in data] #self.tau,
                 print(data.shape)
                 print(np.min(np.linalg.norm(data,-1)))
                 print(np.max(np.linalg.norm(data,-1)))
@@ -258,17 +258,22 @@ class MSAD(LightningModule):
                 idx = (test_labels == 0)
                 likelihood_mono_norm = np.mean(self.dpgmm[0].score_samples(test_data[idx]))
                 likelihood_dual_norm = np.mean(self.dpgmm[1].score_samples(test_data[idx]))
-
+                likelihood_trial_norm = np.mean(self.dpgmm[2].score_samples(test_data[idx]))
                 print("likelihood_mono" + str(likelihood_mono_norm))
                 print("likelihood_dual" + str(likelihood_dual_norm))
+                print("likelihood_trial" + str(likelihood_trial_norm))
 
                 likelihood_mono_an = np.mean(self.dpgmm[0].score_samples(test_data[~idx]))
                 likelihood_dual_an = np.mean(self.dpgmm[1].score_samples(test_data[~idx]))
+                likelihood_trial_an = np.mean(self.dpgmm[2].score_samples(test_data[~idx]))
 
                 print("likelihood_mono" + str(likelihood_mono_an))
                 print("likelihood_dual" + str(likelihood_dual_an))
+                print("likelihood_trial" + str(likelihood_trial_an))
 
-                auc = roc_auc_score(test_labels,distances)
+
+
+                auc = roc_auc_score1(test_labels,distances)
 
         elif self.vonmises:
             a=0
@@ -354,6 +359,13 @@ def preprocess(x):
     scaled = (large / norm.reshape(-1, 1).astype(np.float64))
     return scaled
 
+
+def roc_auc_score1(a,b):
+    from sklearn.metrics import RocCurveDisplay
+    import matplotlib.pyplot as plt
+    RocCurveDisplay.from_predictions(a,b)
+    plt.savefig("ROCAUC.png")
+    return roc_auc_score(a,b)
 
 
 def predict_vonmises(test_point,all_z,a=0,b=0):
