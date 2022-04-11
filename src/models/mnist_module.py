@@ -75,7 +75,10 @@ class MSAD(LightningModule):
         self.multi_t = False
         self.dir_pro = True
         self.vonmises = False
-        self.tau = .5
+        import random
+        self.tau = random.random()
+        self.diagvib_framework = True
+       # self.tau = .5
 
 
     def training_step(self, batch: Any, batch_idx: int):
@@ -192,14 +195,26 @@ class MSAD(LightningModule):
 
                 self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
                 self.dpgmm.append(GaussianMixture(n_components=2,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=3,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=10,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
+
+                likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
+                likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
+                likelihood_trial_train = np.mean(self.dpgmm[2].score_samples(data))
+                print("likelihood_train_mono" + str(likelihood_mono_train))
+                print("likelihood_train_dual" + str(likelihood_dual_train))
+                print("likelihood_train_trial" + str(likelihood_trial_train))
+
 
             elif self.vonmises:
+                self.sum_mu = []
 
-                self.sum_mu = [norm(loc=d) for d in data] #self.tau,
-                print(data.shape)
-                print(np.min(np.linalg.norm(data,-1)))
-                print(np.max(np.linalg.norm(data,-1)))
+                for i in range(512):
+              #      print(vonmises.fit(data[:, i], fscale=1))
+              #      print(vonmises(vonmises.fit(data[:, i], fscale=1)))
+                    self.sum_mu.append({vonmises.fit(data[:,i],fscale=1)})# for d in data] #,
+
+
+
 
             else:
                 self.params = {"mean": data.mean(axis=0) , "cov":numpy.cov(data.transpose())}
@@ -228,6 +243,11 @@ class MSAD(LightningModule):
 
         test_data = self.treated_test_feature_space - self.normaliser
 
+        print("knn")
+        evaluate_gen_short(test_labels,distances,  self.diagvib_framework)
+        auc = roc_auc_score(test_labels, distances)
+        print(auc)
+
         if self.multi_univariate:
             pdf = np.array([])
             for e,dict in enumerate(self.params):
@@ -254,7 +274,7 @@ class MSAD(LightningModule):
                     print(auc)
                 auc = roc_auc_score(test_labels,distances)
                 print(auc)
-            else:
+            elif False:
                 idx = (test_labels == 0)
                 likelihood_mono_norm = np.mean(self.dpgmm[0].score_samples(test_data[idx]))
                 likelihood_dual_norm = np.mean(self.dpgmm[1].score_samples(test_data[idx]))
@@ -275,7 +295,18 @@ class MSAD(LightningModule):
 
                 auc = roc_auc_score1(test_labels,distances)
 
+            else:
+                print("unparametrized distribution")
+                for a in self.dpgmm:
+                    pdf = a.score_samples(test_data)
+                    evaluate_gen_short(test_labels, - pdf.transpose(), self.diagvib_framework)
+            auc = roc_auc_score(test_labels, - pdf.transpose())
+            print(auc)
+
+
+
         elif self.vonmises:
+            print("self.tau " + str(self.tau))
             a=0
             b=0
             #for b in range(3):
@@ -287,6 +318,8 @@ class MSAD(LightningModule):
             pdf = scipy.stats.multivariate_normal.logpdf(test_data,**self.params)
             auc = roc_auc_score(test_labels, - pdf.transpose())
 
+
+        auc = roc_auc_score(test_labels, distances)
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
@@ -351,6 +384,22 @@ class MSAD(LightningModule):
         KL_divergence.required_grad = True
         return KL_divergence
 
+
+def evaluate_gen_short(test_idx,predictions,boolean):
+    if boolean:
+        gen = predictions[test_idx==0]
+        short = predictions[test_idx==1]
+        median = np.median(predictions)
+        #genacc = np.mean(test_idx[test_idx==0] == (gen>median).astype(int))
+        #shortacc = np.mean(test_idx[test_idx==1] == (short>median).astype(int))
+        genauc = roc_auc_score(test_idx[predictions>=median], predictions[predictions>=median])
+        shortauc = roc_auc_score(test_idx[predictions<median], predictions[predictions<median])
+
+        print("generalisation score: " + str(genauc))
+        print("shortcut resistance score: " + str(shortauc))
+    return
+
+
 def preprocess(x):
     epsilon = 1e-8
     min = x.min(1).reshape(-1, 1)
@@ -374,9 +423,10 @@ def predict_vonmises(test_point,all_z,a=0,b=0):
     print("second"+str(b))
     for point in test_point:
         temp2 = []
-        for z in all_z:
-            temp2.append(z.pdf(point))
+        for e,z in enumerate(all_z):
+            temp2.append(vonmises.pdf(point[e],*z))
         temp.append(reducer(reducer(temp2,a,dim=0),b,dim=0))
+        print(temp)
     return np.array(temp)
 
 

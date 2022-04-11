@@ -167,6 +167,9 @@ class DIAGVIBModule(LightningDataModule):
                     normal_label = train.dataset_spec['modes'][1]['specification']['objs'][0][mode]
                     train.dataset.task_labels =  [int(a != train_env0) for a in train.dataset.task_labels]
                     test.dataset.task_labels = [int(a != normal_label) for a in test.dataset.task_labels] #targets?
+
+
+
                     return train, test
 
             train, test = get_diagvib(self.hparams.data_dir,self.hparams.label_class)
