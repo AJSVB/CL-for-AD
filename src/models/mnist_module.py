@@ -23,10 +23,14 @@ import random
 import torch.nn.functional as F
 from sklearn.metrics import roc_auc_score
 import scipy.stats
-
+import numpy as np
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import brute,dual_annealing
+import time
 import torch.nn as nn
 from sklearn.mixture import BayesianGaussianMixture,GaussianMixture
-from scipy.stats import vonmises,norm
+from scipy.stats import vonmises,norm,multivariate_normal
 
 class MSAD(LightningModule):
     """
@@ -78,7 +82,8 @@ class MSAD(LightningModule):
         import random
         self.tau = random.random()
         self.diagvib_framework = True
-       # self.tau = .5
+
+        self.tau = .001
 
 
     def training_step(self, batch: Any, batch_idx: int):
@@ -170,10 +175,13 @@ class MSAD(LightningModule):
             if(self.printing_cosine_similarity_experiment):
                 Joao_similarity(self.treated_val_feature_space[idx],val_labels[idx],self.treated_val_feature_space[~idx],0,"after_training")
             self.treated_val_feature_space = self.treated_val_feature_space[idx]
-            print(np.min(np.linalg.norm(self.treated_val_feature_space, -1)))
-            print(np.max(np.linalg.norm(self.treated_val_feature_space, -1)))
+          #  print(np.min(np.linalg.norm(self.treated_val_feature_space, -1)))
+          #  print(np.max(np.linalg.norm(self.treated_val_feature_space, -1)))
+           # print(self.treated_val_feature_space @ self.treated_val_feature_space.T)
+           # print(self.treated_val_feature_space @ self.treated_val_feature_space.T)
             self.normaliser = np.mean(self.treated_val_feature_space,axis=0)
             data = self.treated_val_feature_space - self.normaliser
+            self.weight = get_pca(data)
 
 
             if self.multi_univariate:
@@ -193,9 +201,21 @@ class MSAD(LightningModule):
                 self.dpgmm = []
 #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
 
+                n = get_pca(data)
+                self.proj = lambda x : x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
+               # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
+               # print(proj_data.shape)
+               # proj_data2 = data - proj_data
+                data = self.proj(data)
+
                 self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
                 self.dpgmm.append(GaussianMixture(n_components=2,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
                 self.dpgmm.append(GaussianMixture(n_components=10,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'full').fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'tied').fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'diag').fit(data))
+                self.dpgmm.append(BayesianGaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'full').fit(data))
+                self.dpgmm.append(BayesianGaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
 
                 likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
                 likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
@@ -208,10 +228,11 @@ class MSAD(LightningModule):
             elif self.vonmises:
                 self.sum_mu = []
 
-                for i in range(512):
+                for d in data: #range(512):
               #      print(vonmises.fit(data[:, i], fscale=1))
               #      print(vonmises(vonmises.fit(data[:, i], fscale=1)))
-                    self.sum_mu.append({vonmises.fit(data[:,i],fscale=1)})# for d in data] #,
+                    self.sum_mu.append(vonmises(self.tau,d)) #,
+
 
 
 
@@ -298,21 +319,39 @@ class MSAD(LightningModule):
             else:
                 print("unparametrized distribution")
                 for a in self.dpgmm:
-                    pdf = a.score_samples(test_data)
+                    pdf = a.score_samples(self.proj(test_data))
                     evaluate_gen_short(test_labels, - pdf.transpose(), self.diagvib_framework)
-            auc = roc_auc_score(test_labels, - pdf.transpose())
-            print(auc)
+                    auc = roc_auc_score(test_labels, - pdf.transpose())
+                    print(auc)
 
 
 
         elif self.vonmises:
+
             print("self.tau " + str(self.tau))
-            a=0
-            b=0
-            #for b in range(3):
-            predictions = predict_vonmises(test_data,self.sum_mu,a,b)
+            predictions = predict_vonmises(test_data,self.sum_mu,0,0,weights=self.weight)
             auc = roc_auc_score(test_labels, - predictions)
             print(auc)
+
+
+
+            def func(tuples):
+                c, d= tuples
+                x = self.weight
+                weight =   1/x
+                predictions = predict_vonmises(test_data, self.sum_mu, 0, 0, weights=weight)
+                auc = roc_auc_score(test_labels, - predictions)
+                return -auc
+
+
+            te = time.time()
+            popt = dual_annealing(func, [(-10,10),(-10,10)],maxiter=1)
+            print(time.time() - te)
+            print(popt)
+
+
+
+
 
         else:
             pdf = scipy.stats.multivariate_normal.logpdf(test_data,**self.params)
@@ -400,6 +439,14 @@ def evaluate_gen_short(test_idx,predictions,boolean):
     return
 
 
+def get_pca(x):
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components=1)
+    pca.fit(x)
+    print(pca.components_[0].shape)
+
+    return pca.components_[0]
+
 def preprocess(x):
     epsilon = 1e-8
     min = x.min(1).reshape(-1, 1)
@@ -417,28 +464,33 @@ def roc_auc_score1(a,b):
     return roc_auc_score(a,b)
 
 
-def predict_vonmises(test_point,all_z,a=0,b=0):
+def predict_vonmises(test_point,all_z,a=0,b=0,weights = None):
     temp = []
     print("first"+str(a))
     print("second"+str(b))
     for point in test_point:
         temp2 = []
         for e,z in enumerate(all_z):
-            temp2.append(vonmises.pdf(point[e],*z))
-        temp.append(reducer(reducer(temp2,a,dim=0),b,dim=0))
-        print(temp)
+            temp2.append(z.pdf(point))
+        temp.append(reducer(reducer(temp2,3,dim=1,weights=weights),0,dim=0))
+      #  print(np.array(temp).shape)
     return np.array(temp)
 
 
-def reducer(pdf, case,dim=1):
+def reducer(pdf, case,dim=1,weights = None):
     # given pdfs per dimension, we reduce to a single dimension pdf.
     pdf = np.array(pdf)
+#    print(pdf.shape)
+
     if case == 0:
         return pdf.mean(dim)
     if case == 1:
         return np.log(pdf + 1e-12).sum(dim)
     if case == 2:
         return pdf.shape[dim] / (1 / pdf).sum(dim)
+    if case == 3:
+  #      print(weights.shape)
+        return  np.average(pdf,dim,weights)
 
 import numpy as np
 from scipy import special
