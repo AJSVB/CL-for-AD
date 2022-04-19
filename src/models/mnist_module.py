@@ -202,20 +202,17 @@ class MSAD(LightningModule):
 #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
 
                 n = get_pca(data)
-                self.proj = lambda x : x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
+                self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
                # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
                # print(proj_data.shape)
                # proj_data2 = data - proj_data
                 data = self.proj(data)
 
-                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=2,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=10,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'full').fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'tied').fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'diag').fit(data))
-                self.dpgmm.append(BayesianGaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'full').fit(data))
-                self.dpgmm.append(BayesianGaussianMixture(n_components=1,n_init = 2, max_iter =200, covariance_type = 'spherical').fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 10, max_iter =2000, covariance_type = 'spherical').fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=2,n_init = 10, max_iter =2000, covariance_type = 'spherical').fit(data))
+                self.dpgmm.append(GaussianMixture(n_components=10,n_init = 10, max_iter =2000, covariance_type = 'spherical').fit(data))
+                self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 10, max_iter =2000, covariance_type = 'full').fit(data))
+                self.dpgmm.append(BayesianGaussianMixture(n_components=1,n_init = 10, max_iter =2000, covariance_type = 'spherical').fit(data))
 
                 likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
                 likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
