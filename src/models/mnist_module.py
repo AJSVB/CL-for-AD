@@ -24,6 +24,7 @@ import torch.nn.functional as F
 from sklearn.metrics import roc_auc_score
 import scipy.stats
 import numpy as np
+import n_sphere
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import brute,dual_annealing
@@ -180,7 +181,7 @@ class MSAD(LightningModule):
            # print(self.treated_val_feature_space @ self.treated_val_feature_space.T)
            # print(self.treated_val_feature_space @ self.treated_val_feature_space.T)
             self.normaliser = np.mean(self.treated_val_feature_space,axis=0)
-            data = self.treated_val_feature_space - self.normaliser
+            data = self.treated_val_feature_space #- self.normaliser
             self.weight = get_pca(data)
 
 
@@ -201,25 +202,31 @@ class MSAD(LightningModule):
                 self.dpgmm = []
 #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
 
+                data = n_sphere.convert_spherical(data)[:,1:]
+                print(data.shape)
                 n = get_pca(data)
-                self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
+                self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,x.shape[1])
                # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
                # print(proj_data.shape)
                # proj_data2 = data - proj_data
                 data = self.proj(data)
+                data = np.hstack((np.ones((data.shape[0],1)),data))
+                print(data[0])
+                print(data.shape)
+                data = n_sphere.convert_rectangular(data)
 
-                self.dpgmm.append(GaussianMixture(n_components=1,n_init = 10, max_iter =2000, covariance_type = 'spherical').fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=2,n_init = 10, max_iter =2000, covariance_type = 'spherical').fit(data))
-                self.dpgmm.append(GaussianMixture(n_components=10,n_init = 10, max_iter =2000, covariance_type = 'spherical').fit(data))
-                self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 10, max_iter =2000, covariance_type = 'full').fit(data))
-                self.dpgmm.append(BayesianGaussianMixture(n_components=1,n_init = 10, max_iter =2000, covariance_type = 'spherical').fit(data))
+
+    #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
+                self.dpgmm.append(BayesianGaussianMixture(n_components=int(len(data)/100),n_init = 1, max_iter =100, covariance_type = 'full').fit(data))
+
+
 
                 likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
-                likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
-                likelihood_trial_train = np.mean(self.dpgmm[2].score_samples(data))
+               # likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
+               # likelihood_trial_train = np.mean(self.dpgmm[2].score_samples(data))
                 print("likelihood_train_mono" + str(likelihood_mono_train))
-                print("likelihood_train_dual" + str(likelihood_dual_train))
-                print("likelihood_train_trial" + str(likelihood_trial_train))
+               # print("likelihood_train_dual" + str(likelihood_dual_train))
+               # print("likelihood_train_trial" + str(likelihood_trial_train))
 
 
             elif self.vonmises:
@@ -259,7 +266,7 @@ class MSAD(LightningModule):
         test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
         distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
 
-        test_data = self.treated_test_feature_space - self.normaliser
+        test_data = self.treated_test_feature_space #- self.normaliser
 
         print("knn")
         evaluate_gen_short(test_labels,distances,  self.diagvib_framework)
@@ -292,31 +299,39 @@ class MSAD(LightningModule):
                     print(auc)
                 auc = roc_auc_score(test_labels,distances)
                 print(auc)
-            elif False:
+            elif True:
+
+                test_data = n_sphere.convert_spherical(test_data)[:, 1:]
+                test_data = self.proj(test_data)
+                test_data = np.hstack((np.ones((test_data.shape[0], 1)), test_data))
+                test_data = n_sphere.convert_rectangular(test_data)
+
+
+
                 idx = (test_labels == 0)
                 likelihood_mono_norm = np.mean(self.dpgmm[0].score_samples(test_data[idx]))
-                likelihood_dual_norm = np.mean(self.dpgmm[1].score_samples(test_data[idx]))
-                likelihood_trial_norm = np.mean(self.dpgmm[2].score_samples(test_data[idx]))
+           #     likelihood_dual_norm = np.mean(self.dpgmm[1].score_samples(test_data[idx]))
+           #     likelihood_trial_norm = np.mean(self.dpgmm[2].score_samples(test_data[idx]))
                 print("likelihood_mono" + str(likelihood_mono_norm))
-                print("likelihood_dual" + str(likelihood_dual_norm))
-                print("likelihood_trial" + str(likelihood_trial_norm))
+           #     print("likelihood_dual" + str(likelihood_dual_norm))
+           #     print("likelihood_trial" + str(likelihood_trial_norm))
 
                 likelihood_mono_an = np.mean(self.dpgmm[0].score_samples(test_data[~idx]))
-                likelihood_dual_an = np.mean(self.dpgmm[1].score_samples(test_data[~idx]))
-                likelihood_trial_an = np.mean(self.dpgmm[2].score_samples(test_data[~idx]))
+           #     likelihood_dual_an = np.mean(self.dpgmm[1].score_samples(test_data[~idx]))
+           #     likelihood_trial_an = np.mean(self.dpgmm[2].score_samples(test_data[~idx]))
 
                 print("likelihood_mono" + str(likelihood_mono_an))
-                print("likelihood_dual" + str(likelihood_dual_an))
-                print("likelihood_trial" + str(likelihood_trial_an))
+            #    print("likelihood_dual" + str(likelihood_dual_an))
+            #    print("likelihood_trial" + str(likelihood_trial_an))
 
 
 
                 auc = roc_auc_score1(test_labels,distances)
 
-            else:
+      #      else:
                 print("unparametrized distribution")
                 for a in self.dpgmm:
-                    pdf = a.score_samples(self.proj(test_data))
+                    pdf = a.score_samples(test_data)
                     evaluate_gen_short(test_labels, - pdf.transpose(), self.diagvib_framework)
                     auc = roc_auc_score(test_labels, - pdf.transpose())
                     print(auc)
@@ -434,6 +449,8 @@ def evaluate_gen_short(test_idx,predictions,boolean):
         print("generalisation score: " + str(genauc))
         print("shortcut resistance score: " + str(shortauc))
     return
+
+
 
 
 def get_pca(x):
