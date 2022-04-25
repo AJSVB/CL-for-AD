@@ -172,7 +172,7 @@ class DIAGVIBModule(LightningDataModule):
 
                     return train, test
 
-            train, test = get_diagvib(self.hparams.data_dir,self.hparams.label_class)
+            train, test = get_diagvib(self.hparams.data_dir,0)#self.hparams.label_class)
 
 
 

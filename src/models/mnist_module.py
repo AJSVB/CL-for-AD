@@ -203,11 +203,10 @@ class MSAD(LightningModule):
             elif self.dir_pro:
                 self.dpgmm = []
 #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
-                """
-                data = theta(data)#[:,1:]
-                print(data.shape)
-                n = get_pca(data)
-                """
+
+#                data = theta(data)#[:,1:]
+#                n = get_pca(data)
+
                 n,data1,mean = GDA(data)
                 self.mean = mean
                 self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,x.shape[1])
