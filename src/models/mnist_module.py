@@ -88,6 +88,7 @@ class MSAD(LightningModule):
 
 
     def training_step(self, batch: Any, batch_idx: int):
+
             self.model.eval()
 
             loss = self.run_epoch(batch)
@@ -104,6 +105,7 @@ class MSAD(LightningModule):
             optimizer.step()
 
     def training_epoch_end(self, outputs: List[Any]):
+
         loss = self.total_loss / self.total_num
         self.total_loss, self.total_num = 0.0, 0
         self.loss = loss
@@ -201,19 +203,18 @@ class MSAD(LightningModule):
             elif self.dir_pro:
                 self.dpgmm = []
 #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
-
-                data = n_sphere.convert_spherical(data)[:,1:]
+                """
+                data = theta(data)#[:,1:]
                 print(data.shape)
                 n = get_pca(data)
+                """
+                n,data1,mean = GDA(data)
+                self.mean = mean
                 self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,x.shape[1])
                # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
                # print(proj_data.shape)
                # proj_data2 = data - proj_data
                 data = self.proj(data)
-                data = np.hstack((np.ones((data.shape[0],1)),data))
-                print(data[0])
-                print(data.shape)
-                data = n_sphere.convert_rectangular(data)
 
 
     #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
@@ -301,10 +302,11 @@ class MSAD(LightningModule):
                 print(auc)
             elif True:
 
-                test_data = n_sphere.convert_spherical(test_data)[:, 1:]
+               # test_data = theta(test_data)#[:, 1:]
+                _,test_data1,_ = GDA(test_data,self.mean)
                 test_data = self.proj(test_data)
-                test_data = np.hstack((np.ones((test_data.shape[0], 1)), test_data))
-                test_data = n_sphere.convert_rectangular(test_data)
+            #    test_data = np.hstack((np.ones((test_data.shape[0], 1)), test_data))
+            #    test_data = n_sphere.convert_rectangular(test_data)
 
 
 
@@ -436,6 +438,72 @@ class MSAD(LightningModule):
         return KL_divergence
 
 
+def theta(y):
+    temp = None
+    for x in y:
+       n = len(x)
+       x = np.array(x)
+       toFill = np.zeros(n-1)
+       r_array = np.sqrt( np.array( [ sum( [xj**2 for xj in x[i+1:]] ) for i in range(0,n-1) ] ) )
+       for k in range(0,n-2):
+          toFill[k] = np.arctan2( r_array[k] , x[k] )
+       toFill[n-2] = 2 * np.arctan2( x[n-1] , ( x[n-2] + np.sqrt(x[n-1]**2 + x[n-2]**2) ) )
+       temp = np.vstack((temp,toFill)) if temp is not None else toFill
+    return temp
+
+def GDA(y,mean=None):
+    def geodesic_distance(x,y):
+        dot_product = np.sum(x*y)
+        mag_x = np.linalg.norm(x)
+        mag_y = np.linalg.norm(y)
+        cosine = dot_product/(mag_x*mag_y)
+        if cosine>1: cosine = 1
+        if cosine<-1: cosine = -1
+        return np.arccos(cosine)
+
+    def log_map(x,y):
+        d = geodesic_distance(x,y)
+        temp = y - np.sum(x*y) * x
+        if np.linalg.norm(temp) != 0:
+            mapped_value = d * (temp/np.linalg.norm(temp))
+        else:
+            mapped_value = np.array([0.0,0.0,0.0])
+        return mapped_value
+
+    def exp_map(p,v):
+        mag_v = np.linalg.norm(v)
+        if mag_v == 0:
+            return p
+        v_normalized = v/mag_v
+        mapped_value = p * np.cos(mag_v) + v_normalized * np.sin(mag_v)
+        return mapped_value
+
+    def parallel_transport(v,p,q):
+        logmap1 = log_map(p,q)
+        logmap2 = log_map(q,p)
+        if np.linalg.norm(logmap1)!=0 and np.linalg.norm(logmap2)!=0:
+            transported_value = v - (np.dot(logmap1 , v)/geodesic_distance(p,q)) * (logmap1+logmap2)
+        else:
+            transported_value = v
+        return transported_value
+
+    def calculate_mean(data):
+        iter = 50
+        lr = 0.01
+        mean = np.ones(data.shape[1])/2
+        for i in range(iter):
+            grad = 0
+            for j in range(data.shape[0]):
+                grad -= log_map(mean,data[j])
+            mean = exp_map(mean, -1*lr*grad)
+        return mean
+    if mean is None:
+        mean = calculate_mean(y)
+    mapped_points = np.array([log_map(mean,y[i]) for i in range(len(y))])
+    principal_vectors = np.linalg.svd(mapped_points.T)[0]
+    magnitudes = np.linalg.svd(mapped_points.T)[1]
+    return principal_vectors[0], mapped_points,mean
+
 def evaluate_gen_short(test_idx,predictions,boolean):
     if boolean:
         gen = predictions[test_idx==0]
@@ -450,8 +518,33 @@ def evaluate_gen_short(test_idx,predictions,boolean):
         print("shortcut resistance score: " + str(shortauc))
     return
 
+import math
+def convert_spherical(input):
+    # Check Numpy or list
+    result =[]
+    for element in range(0, len(input)):
+        r = 1
+        su = 0
+        convert = [r]
+        for i in range (0 ,len(input[element])-2):
+            temp = input[element][i]
+            print(temp)
+            print(r)
+            convert.append(math.acos(temp/ r))
+            su+=temp**2
+            r = math.sqrt(1 -su)
 
+        temp2 = input[element][-2]
+        temp1 = input[element][-1]
 
+        if(temp1 >= 0):
+            r = math.sqrt(temp1**2+temp2**2)
+            convert.append(math.acos(temp2/r))
+        else:
+            r = math.sqrt(temp1**2+temp2**2)
+            convert.append(2*math.pi - math.acos(temp2 /r))
+        result += [convert]
+    return np.array(result)
 
 def get_pca(x):
     from sklearn.decomposition import PCA

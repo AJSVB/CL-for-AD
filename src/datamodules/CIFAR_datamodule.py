@@ -150,7 +150,7 @@ class CIFARDataModule(LightningDataModule):
                 idx = np.array(self.trainset.targets) != self.hparams.label_class
 
             def f(X):
-                return X[:int(len(X)/10)]
+                return X#[:int(len(X)/10)]
 
 
             self.trainset.data = self.trainset.data[idx]
