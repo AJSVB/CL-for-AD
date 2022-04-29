@@ -155,13 +155,13 @@ class CIFARDataModule(LightningDataModule):
 
             self.trainset.data = self.trainset.data[idx]
             self.trainset.targets = [self.trainset.targets[i] for i, flag in enumerate(idx, 0) if flag]
-            idx = (np.array(self.trainset.targets) == self.hparams.label_class) | (np.array(self.trainset.targets) == self.hparams.label_class+1)
+            idx = (np.array(self.trainset.targets) != self.hparams.label_class) #| (np.array(self.trainset.targets) == self.hparams.label_class+1)
 
             self.trainset_1.data = self.trainset_1.data[idx]
             self.trainset_1.targets = [self.trainset_1.targets[i] for i, flag in enumerate(idx, 0) if flag]
 
-            self.testset.targets = [int(t != self.hparams.label_class and t != self.hparams.label_class+1) for t in self.testset.targets]
-
+            self.testset.targets = [int(t == self.hparams.label_class ) for t in self.testset.targets]
+#and t != self.hparams.label_class+1
             self.trainset.data= f(self.trainset.data)
             self.trainset.targets = f(self.trainset.targets)
             self.trainset_1.data= f(self.trainset_1.data)
