@@ -6,3 +6,4 @@ backbone: 18
 label_class: 0
 num_workers: 0
 pin_memory: False
+MSCL: ${MSCL}

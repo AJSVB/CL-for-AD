@@ -48,7 +48,7 @@ class MSAD(LightningModule):
 
     def __init__(
         self,
-        backbone,pretrained, label, lr,batch_size,angular
+        backbone,pretrained, label, lr,batch_size,angular,MSCL
     ):
         super().__init__()
 
@@ -83,26 +83,28 @@ class MSAD(LightningModule):
         import random
         self.tau = random.random()
         self.diagvib_framework = True
-
+        self.panda = self.hparams.MSCL!=True
+        self.MSCL = self.hparams.MSCL==True
         self.tau = .001
 
 
     def training_step(self, batch: Any, batch_idx: int):
-
-            self.model.eval()
-
+        self.model.eval()#Unsure
+        if self.MSCL:
             loss = self.run_epoch(batch)
+        elif self.panda:
+            loss = self.run_panda(batch)
 
-            # log train metrics
-            self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=False)
-            # we can return here dict with any tensors
-            # and then read it in some callback or in `training_epoch_end()`` below
-            # remember to always return loss from `training_step()` or else backpropagation will fail!
-            #return {"loss": loss}
-            optimizer = self.optimizers()
-            optimizer.zero_grad()
-            self.manual_backward(loss)
-            optimizer.step()
+        # log train metrics
+        self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=False)
+        # we can return here dict with any tensors
+        # and then read it in some callback or in `training_epoch_end()`` below
+        # remember to always return loss from `training_step()` or else backpropagation will fail!
+        #return {"loss": loss}
+        optimizer = self.optimizers()
+        optimizer.zero_grad()
+        self.manual_backward(loss)
+        optimizer.step()
 
     def training_epoch_end(self, outputs: List[Any]):
 
@@ -112,44 +114,24 @@ class MSAD(LightningModule):
       #  self.log("train/loss", loss, on_epoch=True, prog_bar=True)
 
 
-    def on_validation_model_eval(self, *args, **kwargs):
-        super().on_validation_model_eval(*args, **kwargs)
-
-      #  if not self.first_epoch and self.trainer.max_epochs - 1 != self.current_epoch and  self.vae:
-       #     torch.set_grad_enabled(True)
-
-
-
     def validation_step(self, batch: Any, batch_idx: int):
         if self.first_epoch:
-            x, y = batch
+            x, y = batch[:2]
             features = self.model(x)
             self.train_feature_space.append(features)
             self.val_labels.append(y)
 
-        elif self.trainer.max_epochs - 1 == self.current_epoch:
-            x, y = batch
-            features = self.model(x)
-            self.val_feature_space.append(features)
-            self.val_labels.append(y)
+        if self.trainer.max_epochs - 1 == self.current_epoch:
+                x, y = batch[:2]
+                features = self.model(x)
+                self.val_feature_space.append(features)
+                self.val_labels.append(y)
 
 
-            if self.vae:
-                mu,sig = self.encode(features)
-                self.sum_mu += [mu]
-                self.sum_sig += [sig]
-
-
-
-        elif self.vae:
-            x, y = batch
-            features = self.model(x)
-            loss = self.loss_fc(features) * 100000
-            self.log("train/KLVAE", loss, on_epoch=True, prog_bar=True)
-            optimizer = self.optimizers()
-            optimizer.zero_grad()
-            self.manual_backward(loss)
-            optimizer.step()
+                if self.vae:
+                    mu,sig = self.encode(features)
+                    self.sum_mu += [mu]
+                    self.sum_sig += [sig]
 
 
 
@@ -171,7 +153,11 @@ class MSAD(LightningModule):
             self.center = self.center.to(self.device)
             self.first_epoch = False
             self.val_labels = []
-        elif self.trainer.max_epochs - 1 == self.current_epoch:
+            if self.panda:
+                self.criterion = CompactnessLoss(self.center)
+
+
+        if self.trainer.max_epochs - 1 == self.current_epoch:
             self.treated_val_feature_space = torch.cat(self.val_feature_space, dim=0).contiguous().cpu().numpy()
             val_labels = torch.cat(self.val_labels, dim=0).cpu().numpy()
             idx = np.array(val_labels) == 0
@@ -185,78 +171,78 @@ class MSAD(LightningModule):
             self.normaliser = np.mean(self.treated_val_feature_space,axis=0)
             data = self.treated_val_feature_space #- self.normaliser
             self.weight = get_pca(data)
+            if self.MSCL:
+
+                if self.multi_univariate:
+                    from fitter import  Fitter
+                    self.params = []
+                    for i in range(512):
+                        f = Fitter(data[:,i],timeout=10,distributions=["beta","chi","genexpon","halfgennorm","johnsonsb","mielke","nakagami","pearson3"])
+                        f.fit()
+                        self.params.append(f.get_best())
+
+                elif self.multi_t:
+                    dof = 10
+                    cov, uni, results = t(data,dof=dof)
+                    self.params = {"loc":uni,"shape":cov,"df":dof}
+
+                elif self.dir_pro:
+                    self.dpgmm = []
+    #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
+
+    #                data = theta(data)#[:,1:]
+    #                n = get_pca(data)
+
+                    n,data1,mean = GDA(data)
+                    self.mean = mean
+                    self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,x.shape[1])
+                   # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
+                   # print(proj_data.shape)
+                   # proj_data2 = data - proj_data
+                    data = self.proj(data)
 
 
-            if self.multi_univariate:
-                from fitter import  Fitter
-                self.params = []
-                for i in range(512):
-                    f = Fitter(data[:,i],timeout=10,distributions=["beta","chi","genexpon","halfgennorm","johnsonsb","mielke","nakagami","pearson3"])
-                    f.fit()
-                    self.params.append(f.get_best())
-
-            elif self.multi_t:
-                dof = 10
-                cov, uni, results = t(data,dof=dof)
-                self.params = {"loc":uni,"shape":cov,"df":dof}
-
-            elif self.dir_pro:
-                self.dpgmm = []
-#                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
-
-#                data = theta(data)#[:,1:]
-#                n = get_pca(data)
-
-                n,data1,mean = GDA(data)
-                self.mean = mean
-                self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,x.shape[1])
-               # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
-               # print(proj_data.shape)
-               # proj_data2 = data - proj_data
-                data = self.proj(data)
-
-
-    #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
-                self.dpgmm.append(BayesianGaussianMixture(n_components=int(len(data)/100),n_init = 1, max_iter =100, covariance_type = 'full').fit(data))
-
-
-
-                likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
-               # likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
-               # likelihood_trial_train = np.mean(self.dpgmm[2].score_samples(data))
-                print("likelihood_train_mono" + str(likelihood_mono_train))
-               # print("likelihood_train_dual" + str(likelihood_dual_train))
-               # print("likelihood_train_trial" + str(likelihood_trial_train))
-
-
-            elif self.vonmises:
-                self.sum_mu = []
-
-                for d in data: #range(512):
-              #      print(vonmises.fit(data[:, i], fscale=1))
-              #      print(vonmises(vonmises.fit(data[:, i], fscale=1)))
-                    self.sum_mu.append(vonmises(self.tau,d)) #,
+        #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
+                    self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'full').fit(data))
 
 
 
+                    likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
+                   # likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
+                   # likelihood_trial_train = np.mean(self.dpgmm[2].score_samples(data))
+                    print("likelihood_train_mono" + str(likelihood_mono_train))
+                   # print("likelihood_train_dual" + str(likelihood_dual_train))
+                   # print("likelihood_train_trial" + str(likelihood_trial_train))
 
 
-            else:
-                self.params = {"mean": data.mean(axis=0) , "cov":numpy.cov(data.transpose())}
+                elif self.vonmises:
+                    self.sum_mu = []
+
+                    for d in data: #range(512):
+                  #      print(vonmises.fit(data[:, i], fscale=1))
+                  #      print(vonmises(vonmises.fit(data[:, i], fscale=1)))
+                        self.sum_mu.append(vonmises(self.tau,d)) #,
 
 
 
 
-            if self.vae:
-                print(self.sum_mu)
-                print(np.mean(self.sum_mu))
-                print(np.mean(self.sum_sig))
+
+                else:
+                    self.params = {"mean": data.mean(axis=0) , "cov":numpy.cov(data.transpose())}
+
+
+
+
+                if self.vae:
+                    print(self.sum_mu)
+                    print(np.mean(self.sum_mu))
+                    print(np.mean(self.sum_sig))
 
 
         self.log("val/acc", -self.loss, on_epoch=True, prog_bar=True)
 
     def test_step(self, batch: Any, batch_idx: int):
-        x, y = batch
+        x, y = batch[:2]
         features = self.model(x)
         self.test_feature_space.append(features)
         self.test_labels.append(y)
@@ -264,112 +250,114 @@ class MSAD(LightningModule):
     def test_epoch_end(self, outputs: List[Any]):
         self.treated_test_feature_space = torch.cat(self.test_feature_space, dim=0).contiguous().cpu().numpy()
         test_labels = torch.cat(self.test_labels, dim=0).cpu().numpy()
-        distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
-
         test_data = self.treated_test_feature_space #- self.normaliser
 
-        print("knn")
-        evaluate_gen_short(test_labels,distances,  self.diagvib_framework)
-        auc = roc_auc_score(test_labels, distances)
-        print(auc)
 
-        if self.multi_univariate:
-            pdf = np.array([])
-            for e,dict in enumerate(self.params):
-                for a in dict:
-                    b = dict[a]
-                    dist = eval("scipy.stats." + a)
-                    result = dist.pdf(test_data[:,e],**b)
-                    if e==0:
-                        pdf = result
-                    else:
-                        pdf = np.vstack((pdf,result))
-            print(self.params)
-            for i in range(3):
-                auc = roc_auc_score(test_labels, - reducer(pdf.transpose(),i))
-                print(auc)
-        elif self.multi_t:
-            pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
-            auc = roc_auc_score(test_labels, - pdf.transpose())
-        elif self.dir_pro:
-            if False:
-                for a in self.dpgmm:
-                    pdf = a.score_samples(test_data)
-                    auc = roc_auc_score(test_labels, - pdf.transpose())
-                    print(auc)
-                auc = roc_auc_score(test_labels,distances)
-                print(auc)
-            elif True:
+        distances = knn_score(self.treated_val_feature_space, self.treated_test_feature_space)
 
-               # test_data = theta(test_data)#[:, 1:]
-                _,test_data1,_ = GDA(test_data,self.mean)
-                test_data = self.proj(test_data)
-            #    test_data = np.hstack((np.ones((test_data.shape[0], 1)), test_data))
-            #    test_data = n_sphere.convert_rectangular(test_data)
-
-
-
-                idx = (test_labels == 0)
-                likelihood_mono_norm = np.mean(self.dpgmm[0].score_samples(test_data[idx]))
-           #     likelihood_dual_norm = np.mean(self.dpgmm[1].score_samples(test_data[idx]))
-           #     likelihood_trial_norm = np.mean(self.dpgmm[2].score_samples(test_data[idx]))
-                print("likelihood_mono" + str(likelihood_mono_norm))
-           #     print("likelihood_dual" + str(likelihood_dual_norm))
-           #     print("likelihood_trial" + str(likelihood_trial_norm))
-
-                likelihood_mono_an = np.mean(self.dpgmm[0].score_samples(test_data[~idx]))
-           #     likelihood_dual_an = np.mean(self.dpgmm[1].score_samples(test_data[~idx]))
-           #     likelihood_trial_an = np.mean(self.dpgmm[2].score_samples(test_data[~idx]))
-
-                print("likelihood_mono" + str(likelihood_mono_an))
-            #    print("likelihood_dual" + str(likelihood_dual_an))
-            #    print("likelihood_trial" + str(likelihood_trial_an))
-
-
-
-                auc = roc_auc_score1(test_labels,distances)
-
-      #      else:
-                print("unparametrized distribution")
-                for a in self.dpgmm:
-                    pdf = a.score_samples(test_data)
-                    evaluate_gen_short(test_labels, - pdf.transpose(), self.diagvib_framework)
-                    auc = roc_auc_score(test_labels, - pdf.transpose())
-                    print(auc)
-
-
-
-        elif self.vonmises:
-
-            print("self.tau " + str(self.tau))
-            predictions = predict_vonmises(test_data,self.sum_mu,0,0,weights=self.weight)
-            auc = roc_auc_score(test_labels, - predictions)
+        if  self.MSCL:
+            print("knn")
+            evaluate_gen_short(test_labels,distances,  self.diagvib_framework)
+            auc = roc_auc_score1(test_labels, distances)
             print(auc)
 
+            if self.multi_univariate:
+                pdf = np.array([])
+                for e,dict in enumerate(self.params):
+                    for a in dict:
+                        b = dict[a]
+                        dist = eval("scipy.stats." + a)
+                        result = dist.pdf(test_data[:,e],**b)
+                        if e==0:
+                            pdf = result
+                        else:
+                            pdf = np.vstack((pdf,result))
+                print(self.params)
+                for i in range(3):
+                    auc = roc_auc_score(test_labels, - reducer(pdf.transpose(),i))
+                    print(auc)
+            elif self.multi_t:
+                pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
+                auc = roc_auc_score(test_labels, - pdf.transpose())
+            elif self.dir_pro:
+                if False:
+                    for a in self.dpgmm:
+                        pdf = a.score_samples(test_data)
+                        auc = roc_auc_score(test_labels, - pdf.transpose())
+                        print(auc)
+                    auc = roc_auc_score(test_labels,distances)
+                    print(auc)
+                elif True:
+
+                   # test_data = theta(test_data)#[:, 1:]
+                    _,test_data1,_ = GDA(test_data,self.mean)
+                    test_data = self.proj(test_data)
+                #    test_data = np.hstack((np.ones((test_data.shape[0], 1)), test_data))
+                #    test_data = n_sphere.convert_rectangular(test_data)
 
 
-            def func(tuples):
-                c, d= tuples
-                x = self.weight
-                weight =   1/x
-                predictions = predict_vonmises(test_data, self.sum_mu, 0, 0, weights=weight)
+
+                    idx = (test_labels == 0)
+                    likelihood_mono_norm = np.mean(self.dpgmm[0].score_samples(test_data[idx]))
+               #     likelihood_dual_norm = np.mean(self.dpgmm[1].score_samples(test_data[idx]))
+               #     likelihood_trial_norm = np.mean(self.dpgmm[2].score_samples(test_data[idx]))
+                    print("likelihood_mono" + str(likelihood_mono_norm))
+               #     print("likelihood_dual" + str(likelihood_dual_norm))
+               #     print("likelihood_trial" + str(likelihood_trial_norm))
+
+                    likelihood_mono_an = np.mean(self.dpgmm[0].score_samples(test_data[~idx]))
+               #     likelihood_dual_an = np.mean(self.dpgmm[1].score_samples(test_data[~idx]))
+               #     likelihood_trial_an = np.mean(self.dpgmm[2].score_samples(test_data[~idx]))
+
+                    print("likelihood_mono" + str(likelihood_mono_an))
+                #    print("likelihood_dual" + str(likelihood_dual_an))
+                #    print("likelihood_trial" + str(likelihood_trial_an))
+
+
+
+                    auc = roc_auc_score1(test_labels,distances)
+
+          #      else:
+                    print("unparametrized distribution")
+                    for a in self.dpgmm:
+                        pdf = a.score_samples(test_data)
+                        evaluate_gen_short(test_labels, - pdf.transpose(), self.diagvib_framework)
+                        auc = roc_auc_score(test_labels, - pdf.transpose())
+                        print(auc)
+
+
+
+            elif self.vonmises:
+
+                print("self.tau " + str(self.tau))
+                predictions = predict_vonmises(test_data,self.sum_mu,0,0,weights=self.weight)
                 auc = roc_auc_score(test_labels, - predictions)
-                return -auc
-
-
-            te = time.time()
-            popt = dual_annealing(func, [(-10,10),(-10,10)],maxiter=1)
-            print(time.time() - te)
-            print(popt)
+                print(auc)
 
 
 
+                def func(tuples):
+                    c, d= tuples
+                    x = self.weight
+                    weight =   1/x
+                    predictions = predict_vonmises(test_data, self.sum_mu, 0, 0, weights=weight)
+                    auc = roc_auc_score(test_labels, - predictions)
+                    return -auc
 
 
-        else:
-            pdf = scipy.stats.multivariate_normal.logpdf(test_data,**self.params)
-            auc = roc_auc_score(test_labels, - pdf.transpose())
+                te = time.time()
+                popt = dual_annealing(func, [(-10,10),(-10,10)],maxiter=1)
+                print(time.time() - te)
+                print(popt)
 
+
+
+
+
+            else:
+                pdf = scipy.stats.multivariate_normal.logpdf(test_data,**self.params)
+                auc = roc_auc_score(test_labels, - pdf.transpose())
+                print(auc)
 
         auc = roc_auc_score(test_labels, distances)
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
@@ -383,29 +371,32 @@ class MSAD(LightningModule):
         return torch.optim.SGD(params=self.parameters(), lr=self.hparams.lr, weight_decay=0.00005)
 
     def run_epoch(self, batch):
-        (img1, img2), y = batch
+        (img1, img2), y = batch[:2]
     #    self.optimizer.zero_grad()
-
-
-
         out_1 = self.model(img1)
         out_2 = self.model(img2)
         out_1 = out_1 - self.center
         out_2 = out_2 - self.center
-
         loss = 0
-
-
         loss += contrastive_loss(out_1, out_2)# * 1e-10
-
         if self.hparams.angular:
             loss += ((out_1 ** 2).sum(dim=1).mean() + (out_2 ** 2).sum(dim=1).mean())# * 1e-10
+        self.total_num += img1.size(0)
+        self.total_loss += loss.item() * img1.size(0)
+        return loss
 
+    def run_panda(self, batch):
+        img1, y = batch[:2]
+    #    self.optimizer.zero_grad()
+        out_1 = self.model(img1)
+        loss = self.criterion(out_1)
+
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1e-3)
 
         self.total_num += img1.size(0)
         self.total_loss += loss.item() * img1.size(0)
-
         return loss
+
 
     def encode(self, x):
         # x = torch.flatten(x)
@@ -435,6 +426,35 @@ class MSAD(LightningModule):
         KL_divergence = torch.mean(-0.5 * torch.sum((1 + log_var - mu**2 - torch.exp(log_var)),dim=1), dim=0)
         KL_divergence.required_grad = True
         return KL_divergence
+
+import torch
+import torch.nn as nn
+
+class CompactnessLoss(nn.Module):
+    def __init__(self, center):
+        super(CompactnessLoss, self).__init__()
+        self.center = center
+
+    def forward(self, inputs):
+        m = inputs.size(1)
+        variances = (inputs - self.center).norm(dim=1).pow(2) / m
+        return variances.mean()
+
+
+class EWCLoss(nn.Module):
+    def __init__(self, frozen_model, fisher, lambda_ewc=1e4):
+        super(EWCLoss, self).__init__()
+        self.frozen_model = frozen_model
+        self.fisher = fisher
+        self.lambda_ewc = lambda_ewc
+
+    def forward(self, cur_model):
+        loss_reg = 0
+        for (name, param), (_, param_old) in zip(cur_model.named_parameters(), self.frozen_model.named_parameters()):
+            if 'fc' in name:
+                continue
+            loss_reg += torch.sum(self.fisher[name]*(param_old-param).pow(2))/2
+        return self.lambda_ewc * loss_reg
 
 
 def theta(y):
@@ -510,11 +530,21 @@ def evaluate_gen_short(test_idx,predictions,boolean):
         median = np.median(predictions)
         #genacc = np.mean(test_idx[test_idx==0] == (gen>median).astype(int))
         #shortacc = np.mean(test_idx[test_idx==1] == (short>median).astype(int))
-        genauc = roc_auc_score(test_idx[predictions>=median], predictions[predictions>=median])
-        shortauc = roc_auc_score(test_idx[predictions<median], predictions[predictions<median])
+        genauc = roc_auc_score1(test_idx[predictions<=median], predictions[predictions<=median])
+        shortauc = roc_auc_score1(test_idx[predictions>median], predictions[predictions>median])
+
+        plt.clf()
+        print(test_idx)
+        print([np.argsort(predictions)])
+        print(test_idx[np.argsort(predictions)])
+        plt.plot(range(len(predictions)),test_idx[np.argsort(predictions)],"o")
+        plt.vlines(len(predictions)/2,0,1)
+        plt.savefig(str(time.time())+".pdf")
+
 
         print("generalisation score: " + str(genauc))
         print("shortcut resistance score: " + str(shortauc))
+        print("auc: " + str(roc_auc_score(test_idx, predictions)))
     return
 
 import math
@@ -566,7 +596,7 @@ def roc_auc_score1(a,b):
     from sklearn.metrics import RocCurveDisplay
     import matplotlib.pyplot as plt
     RocCurveDisplay.from_predictions(a,b)
-    plt.savefig("ROCAUC.png")
+    plt.savefig(str(time.time())+".pdf")
     return roc_auc_score(a,b)
 
 
@@ -689,7 +719,7 @@ def contrastive_loss(out_1, out_2):
     pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temp)
     # [2*B]
     pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
-    loss = ( torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+    loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
     return loss
 
 

@@ -1,0 +1,9 @@
+_target_: src.datamodules.WILDS_datamodule.WILDSModule
+
+data_dir: '/cluster/project/jbuhmann/jcarvalho/multi-env/wilds' #${data_dir} # data_dir is specified in config.yaml
+batch_size: 64
+backbone: 18
+label_class: 0
+num_workers: 0
+pin_memory: False
+MSCL: ${MSCL}

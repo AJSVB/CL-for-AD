@@ -3,7 +3,7 @@
 # specify here default training configuration
 defaults:
   - _self_
-  - datamodule: CIFAR_CL.yaml
+  - datamodule: WILDS.yaml
   - model: MSAD.yaml
   - callbacks: default.yaml
   - logger: wandb.yaml # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
@@ -26,6 +26,10 @@ defaults:
   # enable color logging
   - override hydra/hydra_logging: colorlog
   - override hydra/job_logging: colorlog
+
+
+
+MSCL: False
 
 # path to original working directory
 # hydra hijacks working directory by changing it to the new log directory
