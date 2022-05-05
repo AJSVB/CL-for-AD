@@ -100,11 +100,15 @@ class WILDSModule(LightningDataModule):
             self.trainset_1 = dataset.get_subset(
             "train",transform = tx() )
 
-            self.trainset = torch.utils.data.Subset(self.trainset, torch.argwhere(self.trainset.y_array == 0))
-            self.trainset_1 = torch.utils.data.Subset(self.trainset_1, torch.argwhere(self.trainset_1.y_array == 0))
+            print(self.trainset.metadata_array)
+            print(self.testset.metadata_array)
+
+#y_array
+            self.trainset = torch.utils.data.Subset(self.trainset, torch.argwhere(self.trainset.metadata_array[:,0] == 0))
+            self.trainset_1 = torch.utils.data.Subset(self.trainset_1, torch.argwhere(self.trainset_1.metadata_array[:,0] == 0))
             print("trainset size "+ str(len(self.trainset)))
 
-            self.testset = torch.utils.data.Subset(self.testset, torch.argwhere((self.testset.y_array == 1) |(self.testset.y_array == 0)))
+            self.testset = torch.utils.data.Subset(self.testset, torch.argwhere((self.testset.metadata_array[:,0] == 1) |(self.testset.metadata_array[:,0] == 0)))
             print("testset size " +str(len(self.testset)))
 
 
