@@ -173,20 +173,6 @@ class MSAD(LightningModule):
             self.weight = get_pca(data)
             if self.MSCL:
 
-                if self.multi_univariate:
-                    from fitter import  Fitter
-                    self.params = []
-                    for i in range(512):
-                        f = Fitter(data[:,i],timeout=10,distributions=["beta","chi","genexpon","halfgennorm","johnsonsb","mielke","nakagami","pearson3"])
-                        f.fit()
-                        self.params.append(f.get_best())
-
-                elif self.multi_t:
-                    dof = 10
-                    cov, uni, results = t(data,dof=dof)
-                    self.params = {"loc":uni,"shape":cov,"df":dof}
-
-                elif self.dir_pro:
                     self.dpgmm = []
     #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
 
@@ -215,28 +201,7 @@ class MSAD(LightningModule):
                    # print("likelihood_train_trial" + str(likelihood_trial_train))
 
 
-                elif self.vonmises:
-                    self.sum_mu = []
 
-                    for d in data: #range(512):
-                  #      print(vonmises.fit(data[:, i], fscale=1))
-                  #      print(vonmises(vonmises.fit(data[:, i], fscale=1)))
-                        self.sum_mu.append(vonmises(self.tau,d)) #,
-
-
-
-
-
-                else:
-                    self.params = {"mean": data.mean(axis=0) , "cov":numpy.cov(data.transpose())}
-
-
-
-
-                if self.vae:
-                    print(self.sum_mu)
-                    print(np.mean(self.sum_mu))
-                    print(np.mean(self.sum_sig))
 
 
         self.log("val/acc", -self.loss, on_epoch=True, prog_bar=True)
@@ -261,33 +226,8 @@ class MSAD(LightningModule):
             auc = roc_auc_score1(test_labels, distances)
             print(auc)
 
-            if self.multi_univariate:
-                pdf = np.array([])
-                for e,dict in enumerate(self.params):
-                    for a in dict:
-                        b = dict[a]
-                        dist = eval("scipy.stats." + a)
-                        result = dist.pdf(test_data[:,e],**b)
-                        if e==0:
-                            pdf = result
-                        else:
-                            pdf = np.vstack((pdf,result))
-                print(self.params)
-                for i in range(3):
-                    auc = roc_auc_score(test_labels, - reducer(pdf.transpose(),i))
-                    print(auc)
-            elif self.multi_t:
-                pdf = scipy.stats.multivariate_t.logpdf(test_data,**self.params)
-                auc = roc_auc_score(test_labels, - pdf.transpose())
-            elif self.dir_pro:
-                if False:
-                    for a in self.dpgmm:
-                        pdf = a.score_samples(test_data)
-                        auc = roc_auc_score(test_labels, - pdf.transpose())
-                        print(auc)
-                    auc = roc_auc_score(test_labels,distances)
-                    print(auc)
-                elif True:
+            if self.dir_pro:
+
 
                    # test_data = theta(test_data)#[:, 1:]
                     _,test_data1,_ = GDA(test_data,self.mean)
@@ -327,37 +267,6 @@ class MSAD(LightningModule):
 
 
 
-            elif self.vonmises:
-
-                print("self.tau " + str(self.tau))
-                predictions = predict_vonmises(test_data,self.sum_mu,0,0,weights=self.weight)
-                auc = roc_auc_score(test_labels, - predictions)
-                print(auc)
-
-
-
-                def func(tuples):
-                    c, d= tuples
-                    x = self.weight
-                    weight =   1/x
-                    predictions = predict_vonmises(test_data, self.sum_mu, 0, 0, weights=weight)
-                    auc = roc_auc_score(test_labels, - predictions)
-                    return -auc
-
-
-                te = time.time()
-                popt = dual_annealing(func, [(-10,10),(-10,10)],maxiter=1)
-                print(time.time() - te)
-                print(popt)
-
-
-
-
-
-            else:
-                pdf = scipy.stats.multivariate_normal.logpdf(test_data,**self.params)
-                auc = roc_auc_score(test_labels, - pdf.transpose())
-                print(auc)
 
         auc = roc_auc_score(test_labels, distances)
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
@@ -398,34 +307,7 @@ class MSAD(LightningModule):
         return loss
 
 
-    def encode(self, x):
-        # x = torch.flatten(x)
-        print(x.shape)
-        mu = self.mu(x) #.mean()
-        log_var = self.var(x) #x.var()
-        print(mu.shape)
-        return mu, log_var
 
-    def reparameterize(self,mu,log_var):
-        if self.training:
-            #Reparametrization trick
-            std = torch.exp(0.5 * log_var)
-            epsilon = torch.tandn_like(std)
-        else:
-            epsilon= 0
-
-        return mu + std * epsilon
-
-    def VAE_forward(self,x):
-        mu, log_var = self.encode(x)
-        norm = self.reparameterize(mu,log_var) #Useless?
-        return (norm, x, mu,log_var)
-
-    def loss_fc(self,x,*args):
-        (norm, x, mu, log_var) = self.VAE_forward(x)
-        KL_divergence = torch.mean(-0.5 * torch.sum((1 + log_var - mu**2 - torch.exp(log_var)),dim=1), dim=0)
-        KL_divergence.required_grad = True
-        return KL_divergence
 
 import torch
 import torch.nn as nn
@@ -457,18 +339,6 @@ class EWCLoss(nn.Module):
         return self.lambda_ewc * loss_reg
 
 
-def theta(y):
-    temp = None
-    for x in y:
-       n = len(x)
-       x = np.array(x)
-       toFill = np.zeros(n-1)
-       r_array = np.sqrt( np.array( [ sum( [xj**2 for xj in x[i+1:]] ) for i in range(0,n-1) ] ) )
-       for k in range(0,n-2):
-          toFill[k] = np.arctan2( r_array[k] , x[k] )
-       toFill[n-2] = 2 * np.arctan2( x[n-1] , ( x[n-2] + np.sqrt(x[n-1]**2 + x[n-2]**2) ) )
-       temp = np.vstack((temp,toFill)) if temp is not None else toFill
-    return temp
 
 def GDA(y,mean=None):
     def geodesic_distance(x,y):
@@ -547,34 +417,6 @@ def evaluate_gen_short(test_idx,predictions,boolean):
         print("auc: " + str(roc_auc_score(test_idx, predictions)))
     return
 
-import math
-def convert_spherical(input):
-    # Check Numpy or list
-    result =[]
-    for element in range(0, len(input)):
-        r = 1
-        su = 0
-        convert = [r]
-        for i in range (0 ,len(input[element])-2):
-            temp = input[element][i]
-            print(temp)
-            print(r)
-            convert.append(math.acos(temp/ r))
-            su+=temp**2
-            r = math.sqrt(1 -su)
-
-        temp2 = input[element][-2]
-        temp1 = input[element][-1]
-
-        if(temp1 >= 0):
-            r = math.sqrt(temp1**2+temp2**2)
-            convert.append(math.acos(temp2/r))
-        else:
-            r = math.sqrt(temp1**2+temp2**2)
-            convert.append(2*math.pi - math.acos(temp2 /r))
-        result += [convert]
-    return np.array(result)
-
 def get_pca(x):
     from sklearn.decomposition import PCA
     pca = PCA(n_components=1)
@@ -598,93 +440,6 @@ def roc_auc_score1(a,b):
     RocCurveDisplay.from_predictions(a,b)
     plt.savefig(str(time.time())+".pdf")
     return roc_auc_score(a,b)
-
-
-def predict_vonmises(test_point,all_z,a=0,b=0,weights = None):
-    temp = []
-    print("first"+str(a))
-    print("second"+str(b))
-    for point in test_point:
-        temp2 = []
-        for e,z in enumerate(all_z):
-            temp2.append(z.pdf(point))
-        temp.append(reducer(reducer(temp2,3,dim=1,weights=weights),0,dim=0))
-      #  print(np.array(temp).shape)
-    return np.array(temp)
-
-
-def reducer(pdf, case,dim=1,weights = None):
-    # given pdfs per dimension, we reduce to a single dimension pdf.
-    pdf = np.array(pdf)
-#    print(pdf.shape)
-
-    if case == 0:
-        return pdf.mean(dim)
-    if case == 1:
-        return np.log(pdf + 1e-12).sum(dim)
-    if case == 2:
-        return pdf.shape[dim] / (1 / pdf).sum(dim)
-    if case == 3:
-  #      print(weights.shape)
-        return  np.average(pdf,dim,weights)
-
-import numpy as np
-from scipy import special
-
-
-def t(X, dof=3.5, iter=20000, eps=1e-8):
-    '''t
-    Estimates the mean and covariance of the dataset
-    X (rows are datapoints) assuming they come from a
-    student t likelihood with no priors and dof degrees
-    of freedom using the EM algorithm.
-    Implementation based on the algorithm detailed in Murphy
-    Section 11.4.5 (page 362).
-    :param X: dataset
-    :type  X: np.array[n,d]
-    :param dof: degrees of freedom for likelihood
-    :type  dof: float > 2
-    :param iter: maximum EM iterations
-    :type  iter: int
-    :param eps: tolerance for EM convergence
-    :type  eps: float
-    :return: estimated covariance, estimated mean, list of
-             objectives at each iteration.
-    :rtype: np.array[d,d], np.array[d], list[float]
-    '''
-    # initialize parameters
-    D = X.shape[1]
-    N = X.shape[0]
-    cov = np.cov(X, rowvar=False)
-    mean = X.mean(axis=0)
-    mu = X - mean[None, :]
-    delta = np.einsum('ij,ij->i', mu, np.linalg.solve(cov, mu.T).T)
-    z = (dof + D) / (dof + delta)
-    obj = [
-        -N * np.linalg.slogdet(cov)[1] / 2 - (z * delta).sum() / 2 \
-        - N * special.gammaln(dof / 2) + N * dof * np.log(dof / 2) / 2 + dof * (np.log(z) - z).sum() / 2
-    ]
-
-    # iterate
-    for i in range(iter):
-        # M step
-        mean = (X * z[:, None]).sum(axis=0).reshape(-1, 1) / z.sum()
-        mu = X - mean.squeeze()[None, :]
-        cov = np.einsum('ij,ik->jk', mu, mu * z[:, None]) / N
-
-        # E step
-        delta = (mu * np.linalg.solve(cov, mu.T).T).sum(axis=1)
-        delta = np.einsum('ij,ij->i', mu, np.linalg.solve(cov, mu.T).T)
-        z = (dof + D) / (dof + delta)
-
-        # store objective
-        obj.append(
-            -N * np.linalg.slogdet(cov)[1] / 2 - (z * delta).sum() / 2 \
-            - N * special.gammaln(dof / 2) + N * dof * np.log(dof / 2) / 2 + dof * (np.log(z) - z).sum() / 2
-        )
-        if np.abs(obj[-1] - obj[-2]) < eps:
-            break
-    return cov, mean.squeeze(), obj
 
 
 
