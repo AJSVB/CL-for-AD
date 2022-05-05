@@ -387,6 +387,28 @@ def evaluate_gen_short(test_idx,predictions,boolean):
         genauc = roc_auc_score1(test_idx[predictions<=median], predictions[predictions<=median])
         shortauc = roc_auc_score1(test_idx[predictions>median], predictions[predictions>median])
 
+        p = np.sum(test_idx)
+        n = len(test_idx) - np.sum(test_idx)
+        tp = np.sum(predictions[predictions>median])
+        tn = len(predictions[predictions<=median]) - np.sum(predictions[predictions<=median])
+        fp = len(predictions[predictions>median]) - np.sum(predictions[predictions>median])
+        fn = np.sum(predictions[predictions<=median])
+        tpr = tp/p
+        tnr = tn/n
+        ppv=tp/(tp+fp)
+        npv=tn/(tn+fn)
+        fnr = fn/p
+        fpr = fp/n
+        fdr = fp/(fp+tp)
+        for_ = fn/(fn+tn)
+        lrp = tpr/fpr
+        lrm = fnr/tnr
+        acc = (tp+tn)/(p+n)
+        dor = lrp/lrm
+        print(["tp","tn","fp","fn","tpr","tnr","ppv","npv","fnr","fpr","fdr","for_","lrp","lrm","acc","dor"])
+        print([tp,tn,fp,fn,tpr,tnr,ppv,npv,fnr,fpr,fdr,for_,lrp,lrm,acc,dor])
+
+
         plt.clf()
     #    print(test_idx)
     #    print([np.argsort(predictions)])
