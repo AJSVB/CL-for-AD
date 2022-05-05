@@ -29,7 +29,7 @@ defaults:
 
 
 
-MSCL: False
+MSCL: True
 
 # path to original working directory
 # hydra hijacks working directory by changing it to the new log directory
