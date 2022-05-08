@@ -20,6 +20,7 @@ BICUBIC = InterpolationMode.BICUBIC
 import torchvision.transforms as transforms
 from PIL import ImageFilter
 import random
+import math
 import torch.nn.functional as F
 from sklearn.metrics import roc_auc_score
 import scipy.stats
@@ -178,7 +179,9 @@ class MSAD(LightningModule):
 #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
 #                data = theta(data)#[:,1:]
 #                n = get_pca(data)
+            print("this is super slow right?")
             n,data1,mean = GDA(data)
+            print("car on est pas la")
             self.mean = mean
             self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,x.shape[1])
            # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
@@ -186,7 +189,8 @@ class MSAD(LightningModule):
            # proj_data2 = data - proj_data
             data = self.proj(data)
 #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
-            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'full').fit(data))
+            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'diag').fit(data))
+            print("this is quite slow as well")
             likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
            # likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
            # likelihood_trial_train = np.mean(self.dpgmm[2].score_samples(data))
@@ -324,58 +328,63 @@ class EWCLoss(nn.Module):
 
 
 
-def GDA(y,mean=None):
-    def geodesic_distance(x,y):
-        dot_product = np.sum(x*y)
-        mag_x = np.linalg.norm(x)
-        mag_y = np.linalg.norm(y)
-        cosine = dot_product/(mag_x*mag_y)
-        if cosine>1: cosine = 1
-        if cosine<-1: cosine = -1
-        return np.arccos(cosine)
+def cossim(x, y, temp=None, pre=None):
+        if temp is None:
+            temp = np.sum(x * y)
+        if pre is None:
+            pre = np.dot(x, x)
+        mag = np.sqrt(pre * np.dot(y, y))
+        cosine = temp / mag
+        return cosine
 
-    def log_map(x,y):
-        d = geodesic_distance(x,y)
-        temp = y - np.sum(x*y) * x
-        if np.linalg.norm(temp) != 0:
-            mapped_value = d * (temp/np.linalg.norm(temp))
+
+def GDA(y, mean=None):
+    def geodesic_distance(x, y, temp=None, pre=None):
+        cosine = cossim(x, y, temp, pre)
+        if cosine > 1: cosine = 1
+        if cosine < -1: cosine = -1
+        return math.acos(cosine)
+
+    def log_map(x, y, pre=None):
+        temp = np.sum(x * y)
+        d = geodesic_distance(x, y, temp, pre)
+        temp = y - temp * x
+        temp1 = np.sqrt(np.dot(temp, temp))
+        if temp1 != 0:
+            mapped_value = d * (temp / temp1)
         else:
-            mapped_value = np.array([0.0,0.0,0.0])
+            mapped_value = np.zeros(3)
         return mapped_value
 
-    def exp_map(p,v):
-        mag_v = np.linalg.norm(v)
+    def exp_map(p, v):
+        mag_v = np.sqrt(np.dot(v, v))
         if mag_v == 0:
             return p
-        v_normalized = v/mag_v
-        mapped_value = p * np.cos(mag_v) + v_normalized * np.sin(mag_v)
+        v_normalized = v / mag_v
+        mapped_value = p * math.cos(mag_v) + v_normalized * math.sin(mag_v)
         return mapped_value
-
-    def parallel_transport(v,p,q):
-        logmap1 = log_map(p,q)
-        logmap2 = log_map(q,p)
-        if np.linalg.norm(logmap1)!=0 and np.linalg.norm(logmap2)!=0:
-            transported_value = v - (np.dot(logmap1 , v)/geodesic_distance(p,q)) * (logmap1+logmap2)
-        else:
-            transported_value = v
-        return transported_value
 
     def calculate_mean(data):
         iter = 50
-        lr = 0.01
-        mean = np.ones(data.shape[1])/2
+        lr = 0.001
+        mean = np.ones(data.shape[1]) / 2
         for i in range(iter):
             grad = 0
+            pre = np.dot(mean, mean)
             for j in range(data.shape[0]):
-                grad -= log_map(mean,data[j])
-            mean = exp_map(mean, -1*lr*grad)
+                grad -= log_map(mean, data[j], pre)
+            #  print(np.linalg.norm(grad))
+            mean = exp_map(mean, - lr * grad)
         return mean
+
     if mean is None:
         mean = calculate_mean(y)
-    mapped_points = np.array([log_map(mean,y[i]) for i in range(len(y))])
-    principal_vectors = np.linalg.svd(mapped_points.T)[0]
-    magnitudes = np.linalg.svd(mapped_points.T)[1]
-    return principal_vectors[0], mapped_points,mean
+    mapped_points = np.array([log_map(mean, y[i]) for i in range(len(y))])
+    #principal_vectors = np.linalg.svd(mapped_points.T)[0]
+    from sklearn.decomposition import TruncatedSVD
+    principal_vectors = TruncatedSVD(n_components=1,algorithm='arpack').fit(mapped_points).components_
+    # magnitudes = np.linalg.svd(mapped_points.T)[1]
+    return principal_vectors[0], mapped_points, mean
 
 def evaluate_gen_short(test_idx,predictions,boolean):
     if boolean:

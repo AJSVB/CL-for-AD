@@ -138,7 +138,7 @@ class Euler(Node):
             return "'python " + run_script + " " + '+datamodule="{label_class: '+str(experiment_arguments)+'}"' + "' "
 
         bsub = 'bsub ' + N + J + '-n ' + str(int(gpus * 2)) + ' -W ' + str(
-            gpu_q) + ':00 -R "rusage[mem=10000,ngpus_excl_p=' + str(gpus) + ']" '
+            gpu_q) + ':00 -R "rusage[mem=20000,ngpus_excl_p=' + str(gpus) + ']" '
         call = []
         for i in range(1):
             call.append(bsub + callee(i) + ';')

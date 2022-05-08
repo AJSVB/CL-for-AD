@@ -4,28 +4,15 @@ import torch
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
 from torchvision.datasets import MNIST
-from torchvision.transforms import transforms
-
-import torch
-import torchvision
-import torchvision.transforms as transforms
 import numpy as np
 import faiss
 import torchvision.models as models
 import torch.nn.functional as F
-from PIL import ImageFilter
-import random
-from torchvision.transforms import InterpolationMode
-BICUBIC = InterpolationMode.BICUBIC
-from wilds import get_dataset
-from wilds.common.data_loaders import get_train_loader
-
-
-
+import torch
+import torchvision
 from . import *
 
-
-class WILDSModule(LightningDataModule):
+class BenchmarkDataModule(LightningDataModule):
     """
     Example of LightningDataModule for MNIST dataset.
 
@@ -51,7 +38,8 @@ class WILDSModule(LightningDataModule):
         num_workers: int = 0,
         label_class= 0,
         pin_memory: bool = False,
-            MSCL=True
+            MSCL=True,
+            dataset = None
     ):
         super().__init__()
 
@@ -64,12 +52,16 @@ class WILDSModule(LightningDataModule):
         self.data_val: Optional[Dataset] = None
         self.data_test: Optional[Dataset] = None
 
-
+    @property
+    def num_classes(self) -> int:
+        return 10
 
     def prepare_data(self):
         """Download data if needed. This method is called only from a single GPU.
         Do not use it to assign state (self.x = y)."""
-        get_dataset(dataset="rxrx1", download=True, root_dir=self.hparams.data_dir)
+        from . import get_dataset
+        _ = get_dataset(self.hparams.dataset)
+
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -80,36 +72,17 @@ class WILDSModule(LightningDataModule):
         if not self.is_setup:
             self.is_setup = True
 
+            from . import get_dataset
+            train, val, test_id, test_ood,_  = get_dataset(self.hparams.dataset)
+            train.target_transform = lambda id: 0
+            val.target_transform = lambda id: 0
+            test_id.target_transform = lambda id: 0
+            test_ood.target_transform = lambda id: 1
 
-            transform = transform_color if self.hparams.backbone == 152 else transform_resnet18
+            self.trainset_1 = get_subset_with_len(train,20000)
+            self.trainset = get_subset_with_len(val,20000)
+            self.testset = get_subset_with_len(torch.utils.data.ConcatDataset((test_id,test_ood)),20000)
 
-            if not self.hparams.MSCL:
-                tx = lambda: transform_resnet18
-            else:
-                tx= Transform
-
-
-            dataset = get_dataset(dataset="rxrx1", download=False,
-                                  root_dir=self.hparams.data_dir)
-
-
-            self.trainset = dataset.get_subset(
-            "train",transform = transform )
-            self.testset = dataset.get_subset(
-            "test",transform = transform )
-            self.trainset_1 = dataset.get_subset(
-            "train",transform = tx() )
-
-            #self.trainset.y_array = self.trainset.metadata_array[:,0]
-            #self.trainset_1.y_array = self.trainset.metadata_array[:, 0]
-            #self.testset.y_array = self.trainset.metadata_array[:, 0]
-
-            self.trainset = torch.utils.data.Subset(self.trainset, torch.argwhere(self.trainset.y_array == 0))
-            self.trainset_1 = torch.utils.data.Subset(self.trainset_1, torch.argwhere(self.trainset_1.y_array == 0))
-            print("trainset size "+ str(len(self.trainset)))
-
-            self.testset = torch.utils.data.Subset(self.testset, torch.argwhere((self.testset.y_array == 1) |(self.testset.y_array == 0)))
-            print("testset size " +str(len(self.testset)))
 
 
     def train_dataloader(self):
