@@ -189,7 +189,7 @@ class MSAD(LightningModule):
            # proj_data2 = data - proj_data
             data = self.proj(data)
 #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
-            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'diag').fit(data))
+            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'full').fit(data))
             print("this is quite slow as well")
             likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
            # likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
@@ -380,9 +380,9 @@ def GDA(y, mean=None):
     if mean is None:
         mean = calculate_mean(y)
     mapped_points = np.array([log_map(mean, y[i]) for i in range(len(y))])
-    #principal_vectors = np.linalg.svd(mapped_points.T)[0]
+    principal_vectors = np.linalg.svd(mapped_points.T,full_matrices=False)[0]
     from sklearn.decomposition import TruncatedSVD
-    principal_vectors = TruncatedSVD(n_components=1,algorithm='arpack').fit(mapped_points).components_
+    #principal_vectors = TruncatedSVD(n_components=1,algorithm='arpack').fit(mapped_points).components_
     # magnitudes = np.linalg.svd(mapped_points.T)[1]
     return principal_vectors[0], mapped_points, mean
 
@@ -398,10 +398,10 @@ def evaluate_gen_short(test_idx,predictions,boolean):
 
         p = np.sum(test_idx)
         n = len(test_idx) - np.sum(test_idx)
-        tp = np.sum(predictions[predictions>median])
-        tn = len(predictions[predictions<=median]) - np.sum(predictions[predictions<=median])
-        fp = len(predictions[predictions>median]) - np.sum(predictions[predictions>median])
-        fn = np.sum(predictions[predictions<=median])
+        tp = np.sum(test_idx[predictions>median])
+        tn = len(test_idx[predictions<=median]) - np.sum(test_idx[predictions<=median])
+        fp = len(test_idx[predictions>median]) - np.sum(test_idx[predictions>median])
+        fn = np.sum(test_idx[predictions<=median])
         tpr = tp/p
         tnr = tn/n
         ppv=tp/(tp+fp)
