@@ -187,7 +187,7 @@ class MSAD(LightningModule):
            # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
            # print(proj_data.shape)
            # proj_data2 = data - proj_data
-            data = self.proj(data)
+            data = self.proj(data1)
 #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
             self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'full').fit(data))
             print("this is quite slow as well")
@@ -235,7 +235,7 @@ class MSAD(LightningModule):
         print("\nGDA+GMM")
        # test_data = theta(test_data)#[:, 1:]
         _,test_data1,_ = GDA(test_data,self.mean)
-        test_data = self.proj(test_data)
+        test_data = self.proj(test_data1)
     #    test_data = np.hstack((np.ones((test_data.shape[0], 1)), test_data))
     #    test_data = n_sphere.convert_rectangular(test_data)
         idx = (test_labels == 0)
