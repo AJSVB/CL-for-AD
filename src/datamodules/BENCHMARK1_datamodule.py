@@ -12,7 +12,7 @@ import torch
 import torchvision
 from . import *
 
-class BenchmarkDataModule(LightningDataModule):
+class Benchmark1DataModule(LightningDataModule):
     """
     Example of LightningDataModule for MNIST dataset.
 
@@ -73,7 +73,7 @@ class BenchmarkDataModule(LightningDataModule):
             self.is_setup = True
 
             from . import get_dataset
-            train, val, test_id, test_ood,_  = get_dataset(self.hparams.dataset)
+            train, val, test_id, test_ood,_  = get_dataset1(self.hparams.dataset)
             train.target_transform = lambda id: 0
             val.target_transform = lambda id: 0
             test_id.target_transform = lambda id: 0

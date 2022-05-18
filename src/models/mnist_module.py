@@ -188,8 +188,9 @@ class MSAD(LightningModule):
            # print(proj_data.shape)
            # proj_data2 = data - proj_data
             data = self.proj(data1)
+            print(data.shape)
 #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
-            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'full').fit(data))
+            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'full',reg_covar=1e-2).fit(data))
             print("this is quite slow as well")
             likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
            # likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
@@ -366,15 +367,15 @@ def GDA(y, mean=None):
 
     def calculate_mean(data):
         iter = 50
-        lr = 0.001
+        lr = 0.5
         mean = np.ones(data.shape[1]) / 2
         for i in range(iter):
             grad = 0
             pre = np.dot(mean, mean)
             for j in range(data.shape[0]):
                 grad -= log_map(mean, data[j], pre)
-            #  print(np.linalg.norm(grad))
-            mean = exp_map(mean, - lr * grad)
+            print(np.linalg.norm(grad))
+            mean = exp_map(mean, - lr * grad/data.shape[0])
         return mean
 
     if mean is None:

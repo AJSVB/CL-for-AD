@@ -1,4 +1,4 @@
-_target_: src.datamodules.BENCHMARK_datamodule.BenchmarkDataModule
+_target_: src.datamodules.BENCHMARK1_datamodule.Benchmark1DataModule
 
 data_dir: ${data_dir} # data_dir is specified in config.yaml
 batch_size: 64

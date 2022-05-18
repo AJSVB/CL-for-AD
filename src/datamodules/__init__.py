@@ -160,6 +160,7 @@ def get_subset_with_len(dataset, length, shuffle=False):
 
 from . import *
 
+
 def get_dataset( dataset, test_only=True, image_size=1, download=True):
 
     train_transform, test_transform = Transform(), transform_resnet18
@@ -178,6 +179,11 @@ def get_dataset( dataset, test_only=True, image_size=1, download=True):
         n_classes = 100
         train_set = datasets.CIFAR100(DATA_PATH, train=True, download=download, transform=train_transform)
         test_set = datasets.CIFAR100(DATA_PATH, train=False, download=download, transform=test_transform)
+
+    elif dataset == 'stl10':
+        assert test_only and image_size is not None
+        test_set = datasets.STL10(DATA_PATH, split='test', download=download, transform=test_transform)
+
 
     elif dataset == 'svhn':
         assert test_only and image_size is not None
@@ -263,6 +269,32 @@ def get_dataset( dataset, test_only=True, image_size=1, download=True):
         raise NotImplementedError()
 
 
+    return train_set, val_set, test_set_id, test_set, image_size
+
+
+
+
+def get_dataset1( dataset, test_only=True, image_size=1, download=True):
+
+    train_transform, test_transform = Transform(), transform_resnet18
+
+    f = datasets.FGVCAircraft
+
+    train_set = f(DATA_PATH, split="train", download=download, transform=train_transform)
+    val_set = f(DATA_PATH, split="train", download=download, transform=test_transform)
+    test_set_id = f(DATA_PATH, split="test", download=download, transform=test_transform)
+    test_set = f(DATA_PATH, split="test", download=download, transform=test_transform)
+    se = np.array(set(train_set._labels))
+    print(se)
+    train_set = torch.utils.data.Subset(train_set, np.argwhere(np.array(train_set._labels)==0).flatten())
+    val_set = torch.utils.data.Subset(val_set, np.argwhere(np.array(val_set._labels)==0).flatten())
+    print(sum(np.array(test_set_id._labels)==0))
+    test_set_id = torch.utils.data.Subset(test_set_id, np.argwhere(np.array(test_set_id._labels)==0).flatten())
+    print(len(test_set_id))
+
+    print(sum(np.array(test_set._labels)==1))
+    test_set = torch.utils.data.Subset(test_set, np.argwhere(np.array(test_set._labels)==1).flatten())
+    print(len(test_set))
     return train_set, val_set, test_set_id, test_set, image_size
 
 
