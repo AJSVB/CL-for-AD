@@ -17,7 +17,7 @@ from PIL import ImageFilter
 import random
 from torchvision.transforms import InterpolationMode
 BICUBIC = InterpolationMode.BICUBIC
-from wilds import get_dataset
+import wilds.get_dataset  as get_datasetw
 from wilds.common.data_loaders import get_train_loader
 
 
@@ -69,7 +69,7 @@ class WILDSModule(LightningDataModule):
     def prepare_data(self):
         """Download data if needed. This method is called only from a single GPU.
         Do not use it to assign state (self.x = y)."""
-        get_dataset(dataset="rxrx1", download=True, root_dir=self.hparams.data_dir)
+        get_datasetw(dataset="rxrx1", download=True, root_dir=self.hparams.data_dir)
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -89,7 +89,7 @@ class WILDSModule(LightningDataModule):
                 tx= Transform
 
 
-            dataset = get_dataset(dataset="rxrx1", download=False,
+            dataset = get_datasetw(dataset="rxrx1", download=False,
                                   root_dir=self.hparams.data_dir)
 
 

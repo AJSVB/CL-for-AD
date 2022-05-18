@@ -90,7 +90,7 @@ class MSAD(LightningModule):
 
 
     def training_step(self, batch: Any, batch_idx: int):
-        self.model.eval()#Unsure
+        self.model.eval()
         if self.MSCL:
             loss = self.run_epoch(batch)
         elif self.panda:
@@ -177,17 +177,19 @@ class MSAD(LightningModule):
 
             self.dpgmm = []
 #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
-#                data = theta(data)#[:,1:]
-#                n = get_pca(data)
+            data = convert_spherical(data)[:,1:]
+            n = get_pca(data)
             print("this is super slow right?")
-            n,data1,mean = GDA(data)
+            print(data.shape)
+            ##n,data1,mean = GDA(data)
             print("car on est pas la")
-            self.mean = mean
+            ##self.mean = mean
             self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,x.shape[1])
            # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
            # print(proj_data.shape)
            # proj_data2 = data - proj_data
-            data = self.proj(data1)
+
+            data = self.proj(data)
             print(data.shape)
 #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
             self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'full',reg_covar=1e-2).fit(data))
@@ -234,9 +236,9 @@ class MSAD(LightningModule):
 
 
         print("\nGDA+GMM")
-       # test_data = theta(test_data)#[:, 1:]
-        _,test_data1,_ = GDA(test_data,self.mean)
-        test_data = self.proj(test_data1)
+        test_data = convert_spherical(test_data)[:, 1:]
+       # _,test_data1,_ = GDA(test_data,self.mean)
+        test_data = self.proj(test_data)
     #    test_data = np.hstack((np.ones((test_data.shape[0], 1)), test_data))
     #    test_data = n_sphere.convert_rectangular(test_data)
         idx = (test_labels == 0)
@@ -338,6 +340,49 @@ def cossim(x, y, temp=None, pre=None):
         cosine = temp / mag
         return cosine
 
+import math
+def convert_spherical(input):
+    # Check Numpy or list
+    result =[]
+    for element in range(0, len(input)):
+        r = 1
+        su = 0
+        convert = [r]
+        for i in range (0 ,len(input[element])-2):
+            temp = input[element][i]
+        #    print(temp)
+        #    print(r)
+            convert.append(math.acos(max(temp/ r,0)))
+            su+=temp**2
+            r = math.sqrt(1 -su)
+
+        temp2 = input[element][-2]
+        temp1 = input[element][-1]
+
+        if(temp1 >= 0):
+            r = math.sqrt(temp1**2+temp2**2)
+            convert.append(math.acos(temp2/r))
+        else:
+            r = math.sqrt(temp1**2+temp2**2)
+            convert.append(2*math.pi - math.acos(temp2 /r))
+        result += [convert]
+    return np.array(result)
+def convert_spherical(data):
+    return theta(data)
+
+def theta(y):
+    temp = None
+    for x in y:
+       n = len(x)
+       x = np.array(x)
+       toFill = np.zeros(n-1)
+       r_array = np.sqrt( np.array( [ sum( [xj**2 for xj in x[i+1:]] ) for i in range(0,n-1) ] ) )
+       for k in range(0,n-2):
+          toFill[k] = np.arctan2( r_array[k] , x[k] )
+       toFill[n-2] = 2 * np.arctan2( x[n-1] , ( x[n-2] + np.sqrt(x[n-1]**2 + x[n-2]**2) ) )
+       temp = np.vstack((temp,toFill)) if temp is not None else toFill
+    return temp
+
 
 def GDA(y, mean=None):
     def geodesic_distance(x, y, temp=None, pre=None):
@@ -368,7 +413,7 @@ def GDA(y, mean=None):
     def calculate_mean(data):
         iter = 50
         lr = 0.5
-        mean = np.ones(data.shape[1]) / 2
+        mean = np.ones(data.shape[1])
         for i in range(iter):
             grad = 0
             pre = np.dot(mean, mean)
@@ -381,7 +426,7 @@ def GDA(y, mean=None):
     if mean is None:
         mean = calculate_mean(y)
     mapped_points = np.array([log_map(mean, y[i]) for i in range(len(y))])
-    principal_vectors = np.linalg.svd(mapped_points.T,full_matrices=False)[0]
+    principal_vectors = np.linalg.svd(mapped_points.T,full_matrices=y.shape[1]>y.shape[0])[0]
     from sklearn.decomposition import TruncatedSVD
     #principal_vectors = TruncatedSVD(n_components=1,algorithm='arpack').fit(mapped_points).components_
     # magnitudes = np.linalg.svd(mapped_points.T)[1]
