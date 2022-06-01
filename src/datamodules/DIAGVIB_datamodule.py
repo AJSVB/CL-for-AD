@@ -117,28 +117,44 @@ class DIAGVIBModule(LightningDataModule):
             from copy import deepcopy
 
             def get_diagvib(PATH,exp_number):
-                lis = ["shape", "hue", "texture", "lightness", "position", "scale"]
-                for e, mode in enumerate(lis):
-                    print(e)
-                    if e != exp_number:
-                        continue
-
-                    nextmode = lis[(e + 1) % len(lis)]
-                    name = "normal-" + mode + "_anomalous-" + nextmode + "_"
-                    train = torch.load(PATH + name + 'data_train.pt')
-                    val = torch.load(PATH + name + 'data_val.pt')
-                    test = torch.load(PATH + name + 'data_test.pt')
-                    train_env0 = train.dataset_spec['modes'][0]['specification']['objs'][0][nextmode]
-                    train_env1 = train.dataset_spec['modes'][1]['specification']['objs'][0][nextmode]
-                    normal_label = train.dataset_spec['modes'][1]['specification']['objs'][0][mode]
-                    train.dataset.task_labels =  [int(a != train_env0) for a in train.dataset.task_labels]
-                    test.dataset.task_labels = [int(a != normal_label) for a in test.dataset.task_labels] #targets?
-
-
-
+                if "/cluster/project/jbuhmann/jcarvalho/multi-env/diagvibsix_data/":
+                    lis = ["shape", "hue", "texture", "lightness", "position", "scale"]
+                    for e, mode in enumerate(lis):
+                        print(e)
+                        if e != exp_number:
+                            continue
+                        nextmode = lis[(e + 1) % len(lis)]
+                        name = "normal-" + mode + "_anomalous-" + nextmode + "_"
+                        train = torch.load(PATH + name + 'data_train.pt')
+                        val = torch.load(PATH + name + 'data_val.pt')
+                        test = torch.load(PATH + name + 'data_test.pt')
+                        train_env0 = train.dataset_spec['modes'][0]['specification']['objs'][0][nextmode]
+                        train_env1 = train.dataset_spec['modes'][1]['specification']['objs'][0][nextmode]
+                        normal_label = train.dataset_spec['modes'][1]['specification']['objs'][0][mode]
+                        train.dataset.task_labels =  [int(a != train_env0) for a in train.dataset.task_labels]
+                        test.dataset.task_labels = [int(a != normal_label) for a in test.dataset.task_labels] #targets?
                     return train, test
+                else:
+                    lis = ["shape", "hue", "texture", "lightness", "position", "scale"]
+                    for e, mode in enumerate(lis):
+                        print(e)
+                        if e != exp_number:
+                            continue
+                        nextmode = lis[(e + 1) % len(lis)]
+                        name = "normal-" + mode + "_anomalous-" + nextmode + "_"
+                        train = torch.load(PATH + name + 'data_train.pt')
+                        val = torch.load(PATH + name + 'data_val.pt')
+                        test = torch.load(PATH + name + 'data_test.pt')
+                        train_env0 = train.dataset_spec['modes'][0]['specification']['objs'][0]["hue"]
+                        train_env1 = train.dataset_spec['modes'][1]['specification']['objs'][0]["hue"]
+                        normal_label = train.dataset_spec['modes'][1]['specification']['objs'][0]["shape"]
+                        train.dataset.task_labels = [int(a != train_env0) for a in train.dataset.task_labels]
+                        test.dataset.task_labels = [int(a != normal_label) for a in
+                                                    test.dataset.task_labels]  # targets?
 
-            train, test = get_diagvib(self.hparams.data_dir,0)#self.hparams.label_class)
+                        return train, test
+
+            train, test = get_diagvib(self.hparams.data_dir,self.hparams.label_class)
 
 
 
@@ -148,6 +164,16 @@ class DIAGVIBModule(LightningDataModule):
             self.trainset.transform=transform
             self.testset.transform= transform
             self.trainset_1.transform = Transform(True,self.hparams.MSCL)
+
+
+            from torch.utils.data.dataset import Subset
+            dataset_size = len(self.trainset)
+            index = np.arange(dataset_size)
+            np.random.shuffle(index)
+            print(dataset_size)
+            index = torch.from_numpy(index[0:int(dataset_size/4)])
+       #     self.trainset = Subset(self.trainset, index)
+       #     self.trainset_1 = Subset(self.trainset_1, index)
 
 
 

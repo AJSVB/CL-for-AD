@@ -6,8 +6,8 @@ import torchvision.transforms as transforms
 
 from PIL import ImageFilter
 import random
-from torchvision.transforms import InterpolationMode
-BICUBIC = InterpolationMode.BICUBIC
+#from torchvision.transforms import InterpolationMode
+#BICUBIC = InterpolationMode.BICUBIC
 
 class GaussianBlur(object):
     """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
@@ -27,7 +27,7 @@ transform_color = transforms.Compose([transforms.Resize(256),
                                       transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
 transform_resnet18 = transforms.Compose([
-    transforms.Resize(224, interpolation=BICUBIC),
+    transforms.Resize(224, interpolation=2),#BICUBIC),
     transforms.CenterCrop(224),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -50,7 +50,7 @@ moco_transform = transforms.Compose([
 
 
 transform_diagvib = transforms.Compose([
-    transforms.Resize(224, interpolation=BICUBIC),
+    transforms.Resize(224, interpolation=2),#BICUBIC),
     transforms.CenterCrop(224)
 ])
 
@@ -279,23 +279,73 @@ def get_dataset1( dataset, test_only=True, image_size=1, download=True):
     train_transform, test_transform = Transform(), transform_resnet18
 
     f = datasets.FGVCAircraft
+ #   f = datasets.Food101
+  #  f = datasets.DTD
+    if f == datasets.FGVCAircraft:
+        train_set = f(DATA_PATH, split="train", download=download, transform=train_transform)
+        val_set = f(DATA_PATH, split="train", download=download, transform=test_transform)
+        test_set_id = f(DATA_PATH, split="test", download=download, transform=test_transform)
+        test_set = f(DATA_PATH, split="test", download=download, transform=test_transform)
+        se = np.array(set(train_set._labels))
+        print(se)
+        train_set = torch.utils.data.Subset(train_set, np.argwhere(np.array(train_set._labels) == 0).flatten())
+        val_set = torch.utils.data.Subset(val_set, np.argwhere(np.array(val_set._labels) == 0).flatten())
+        print(sum(np.array(test_set_id._labels) == 0))
+        test_set_id = torch.utils.data.Subset(test_set_id, np.argwhere(np.array(test_set_id._labels) == 0).flatten())
+        print(len(test_set_id))
 
-    train_set = f(DATA_PATH, split="train", download=download, transform=train_transform)
-    val_set = f(DATA_PATH, split="train", download=download, transform=test_transform)
-    test_set_id = f(DATA_PATH, split="test", download=download, transform=test_transform)
-    test_set = f(DATA_PATH, split="test", download=download, transform=test_transform)
-    se = np.array(set(train_set._labels))
-    print(se)
-    train_set = torch.utils.data.Subset(train_set, np.argwhere(np.array(train_set._labels)==0).flatten())
-    val_set = torch.utils.data.Subset(val_set, np.argwhere(np.array(val_set._labels)==0).flatten())
-    print(sum(np.array(test_set_id._labels)==0))
-    test_set_id = torch.utils.data.Subset(test_set_id, np.argwhere(np.array(test_set_id._labels)==0).flatten())
-    print(len(test_set_id))
+        print(sum(np.array(test_set._labels) == 1))
+        test_set = torch.utils.data.Subset(test_set, np.argwhere(np.array(test_set._labels) == 1).flatten())
+        print(len(test_set))
+        return train_set, val_set, test_set_id, test_set, image_size
 
-    print(sum(np.array(test_set._labels)==1))
-    test_set = torch.utils.data.Subset(test_set, np.argwhere(np.array(test_set._labels)==1).flatten())
-    print(len(test_set))
-    return train_set, val_set, test_set_id, test_set, image_size
+    elif f == datasets.Food101:
+        train_set = f(DATA_PATH, split="train", download=download, transform=train_transform)
+        val_set = f(DATA_PATH, split="train", download=download, transform=test_transform)
+        test_set_id = f(DATA_PATH, split="test", download=download, transform=test_transform)
+        test_set = f(DATA_PATH, split="test", download=download, transform=test_transform)
+        se = np.array(list(set(train_set._labels)))
+        print(train_set.classes)
+        print(se) #5, 11,13, 48
+        a = np.argwhere(np.array(train_set._labels)==se[5]).flatten()
+        train_set._labels = [0]*len(train_set._labels)
+        train_set = torch.utils.data.Subset(train_set, a)
+        b = np.argwhere(np.array(val_set._labels)==se[5]).flatten()
+        val_set._labels = [0] * len(val_set._labels)
+        val_set = torch.utils.data.Subset(val_set, b)
+        c = np.argwhere(np.array(test_set_id._labels)==se[5]).flatten()
+        test_set_id._labels = [0] * len(test_set_id._labels)
+        test_set_id = torch.utils.data.Subset(test_set_id, c)
+        print(len(test_set_id))
+        d = np.argwhere(np.array(test_set._labels)==se[13]).flatten()
+        test_set._labels = [1] * len(test_set._labels)
+        test_set = torch.utils.data.Subset(test_set, d)
+        print(len(test_set))
+        return train_set, val_set, test_set_id, test_set, image_size
+    elif f == datasets.DTD:
+        train_set = f(DATA_PATH, split="train", download=download, transform=train_transform)
+        val_set = f(DATA_PATH, split="train", download=download, transform=test_transform)
+        test_set_id = f(DATA_PATH, split="test", download=download, transform=test_transform)
+        test_set = f(DATA_PATH, split="test", download=download, transform=test_transform)
+        se = np.array(set(train_set._labels))
+        se = np.array(set(test_set._labels))
+
+        print(se)
+        a = np.argwhere(np.array(train_set._labels)==0).flatten()[:10000]
+        train_set._labels = [0]*len(train_set._labels)
+        train_set = torch.utils.data.Subset(train_set, a)
+        b = np.argwhere(np.array(val_set._labels)==0).flatten()[:10000]
+        val_set._labels = [0] * len(val_set._labels)
+        val_set = torch.utils.data.Subset(val_set, b)
+        c = np.argwhere(np.array(test_set_id._labels)==0).flatten()
+        test_set_id._labels = [0] * len(test_set_id._labels)
+        test_set_id = torch.utils.data.Subset(test_set_id, c)
+        print(len(test_set_id))
+        d = np.argwhere(np.array(test_set._labels)==2).flatten()[0:5000]
+        test_set._labels = [1] * len(test_set._labels)
+        test_set = torch.utils.data.Subset(test_set, d)
+        print(len(test_set))
+        return train_set, val_set, test_set_id, test_set, image_size
 
 
 def get_superclass_list(dataset):

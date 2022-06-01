@@ -96,7 +96,7 @@ class WILDSModule(LightningDataModule):
             self.trainset = dataset.get_subset(
             "train",transform = transform )
             self.testset = dataset.get_subset(
-            "test",transform = transform )
+            "id_test",transform = transform )
             self.trainset_1 = dataset.get_subset(
             "train",transform = tx() )
 

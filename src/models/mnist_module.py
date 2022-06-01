@@ -15,8 +15,8 @@ from src.models.components.simple_dense_net import SimpleDenseNet
 
 from src.models.components.Mean_shifted_AD_net import Mean_shifted_AD_net
 
-from torchvision.transforms import InterpolationMode
-BICUBIC = InterpolationMode.BICUBIC
+#from torchvision.transforms import InterpolationMode
+#BICUBIC = InterpolationMode.BICUBIC
 import torchvision.transforms as transforms
 from PIL import ImageFilter
 import random
@@ -179,25 +179,23 @@ class MSAD(LightningModule):
 #                self.dpgmm.append(BayesianGaussianMixture(n_components=20,n_init = 1, max_iter =100,covariance_type = 'tied',weight_concentration_prior_type = "dirichlet_process").fit(data))
             data = convert_spherical(data)[:,1:]
             n = get_pca(data)
-            print("this is super slow right?")
-            print(data.shape)
             ##n,data1,mean = GDA(data)
-            print("car on est pas la")
             ##self.mean = mean
             self.proj = lambda x :  x- (np.dot(x, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,x.shape[1])
            # proj_data = (np.dot(data, n) / np.sqrt(sum(n**2)) ** 2).reshape(-1,1) * n.reshape(1,512)
            # print(proj_data.shape)
            # proj_data2 = data - proj_data
+            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data)/10,data.shape[1]/10)),n_init = 1, max_iter =10, covariance_type = 'full').fit(data))
 
             data = self.proj(data)
-            print(data.shape)
 #            self.dpgmm.append(BayesianGaussianMixture(n_components=100,n_init = 2, max_iter =1000, covariance_type = 'full').fit(data))
-            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data),data.shape[1])),n_init = 1, max_iter =100, covariance_type = 'full',reg_covar=1e-2).fit(data))
+            self.dpgmm.append(BayesianGaussianMixture(n_components=int(min(len(data)/10,data.shape[1]/10)),n_init = 1, max_iter =10, covariance_type = 'full').fit(data))
+
             print("this is quite slow as well")
-            likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
+       #     likelihood_mono_train = np.mean(self.dpgmm[0].score_samples(data))
            # likelihood_dual_train = np.mean(self.dpgmm[1].score_samples(data))
            # likelihood_trial_train = np.mean(self.dpgmm[2].score_samples(data))
-            print("likelihood_train_mono" + str(likelihood_mono_train))
+        #    print("likelihood_train_mono" + str(likelihood_mono_train))
            # print("likelihood_train_dual" + str(likelihood_dual_train))
            # print("likelihood_train_trial" + str(likelihood_trial_train))
 
@@ -238,28 +236,32 @@ class MSAD(LightningModule):
         print("\nGDA+GMM")
         test_data = convert_spherical(test_data)[:, 1:]
        # _,test_data1,_ = GDA(test_data,self.mean)
-        test_data = self.proj(test_data)
     #    test_data = np.hstack((np.ones((test_data.shape[0], 1)), test_data))
     #    test_data = n_sphere.convert_rectangular(test_data)
-        idx = (test_labels == 0)
-        likelihood_mono_norm = np.mean(self.dpgmm[0].score_samples(test_data[idx]))
+#        idx = (test_labels == 0)
+      #  likelihood_mono_norm = np.mean(self.dpgmm[0].score_samples(test_data[idx]))
    #     likelihood_dual_norm = np.mean(self.dpgmm[1].score_samples(test_data[idx]))
    #     likelihood_trial_norm = np.mean(self.dpgmm[2].score_samples(test_data[idx]))
-        print("likelihood_norm" + str(likelihood_mono_norm))
+      #  print("likelihood_norm" + str(likelihood_mono_norm))
    #     print("likelihood_dual" + str(likelihood_dual_norm))
    #     print("likelihood_trial" + str(likelihood_trial_norm))
-        likelihood_mono_an = np.mean(self.dpgmm[0].score_samples(test_data[~idx]))
+      #  likelihood_mono_an = np.mean(self.dpgmm[0].score_samples(test_data[~idx]))
    #     likelihood_dual_an = np.mean(self.dpgmm[1].score_samples(test_data[~idx]))
    #     likelihood_trial_an = np.mean(self.dpgmm[2].score_samples(test_data[~idx]))
-        print("likelihood_anomal" + str(likelihood_mono_an))
+      #  print("likelihood_anomal" + str(likelihood_mono_an))
     #    print("likelihood_dual" + str(likelihood_dual_an))
     #    print("likelihood_trial" + str(likelihood_trial_an))
-
+        print("wo PCA")
         a = self.dpgmm[0]
         pdf = a.score_samples(test_data)
         evaluate_gen_short(test_labels, - pdf.transpose(), self.diagvib_framework)
         auc = roc_auc_score(test_labels, - pdf.transpose())
-
+        test_data = self.proj(test_data)
+        print("w PCA")
+        a = self.dpgmm[0]
+        pdf = a.score_samples(test_data)
+        evaluate_gen_short(test_labels, - pdf.transpose(), self.diagvib_framework)
+        auc = roc_auc_score(test_labels, - pdf.transpose())
         self.log("test/acc", auc, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
@@ -439,8 +441,8 @@ def evaluate_gen_short(test_idx,predictions,boolean):
         median = np.median(predictions)
         #genacc = np.mean(test_idx[test_idx==0] == (gen>median).astype(int))
         #shortacc = np.mean(test_idx[test_idx==1] == (short>median).astype(int))
-        genauc = roc_auc_score1(test_idx[predictions<=median], predictions[predictions<=median])
-        shortauc = roc_auc_score1(test_idx[predictions>median], predictions[predictions>median])
+     #   genauc = roc_auc_score1(test_idx[predictions<=median], predictions[predictions<=median])
+     #   shortauc = roc_auc_score1(test_idx[predictions>median], predictions[predictions>median])
 
         p = np.sum(test_idx)
         n = len(test_idx) - np.sum(test_idx)

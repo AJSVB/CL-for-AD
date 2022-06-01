@@ -60,7 +60,7 @@ class Benchmark1DataModule(LightningDataModule):
         """Download data if needed. This method is called only from a single GPU.
         Do not use it to assign state (self.x = y)."""
         from . import get_dataset
-        _ = get_dataset(self.hparams.dataset)
+        _ = get_dataset1(self.hparams.dataset)
 
 
     def setup(self, stage: Optional[str] = None):
@@ -74,15 +74,15 @@ class Benchmark1DataModule(LightningDataModule):
 
             from . import get_dataset
             train, val, test_id, test_ood,_  = get_dataset1(self.hparams.dataset)
-            train.target_transform = lambda id: 0
-            val.target_transform = lambda id: 0
-            test_id.target_transform = lambda id: 0
-            test_ood.target_transform = lambda id: 1
-
+            #train.target_transform = lambda id: 0
+            #val.target_transform = lambda id: 0
+            #test_id.target_transform = lambda id: 0
+            #test_ood.target_transform = lambda id: 1
             self.trainset_1 = train #get_subset_with_len(train,20000)
             self.trainset = val #get_subset_with_len(val,20000)
             self.testset = torch.utils.data.ConcatDataset((test_id,test_ood)) #get_subset_with_len(torch.utils.data.ConcatDataset((test_id,test_ood)),20000)
-
+            #for a in self.testset:
+            #    print(a)
 
 
     def train_dataloader(self):
