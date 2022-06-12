@@ -258,7 +258,7 @@ class MSAD(LightningModule):
         auc = roc_auc_score(test_labels, - pdf.transpose())
         test_data = self.proj(test_data)
         print("w PCA")
-        a = self.dpgmm[0]
+        a = self.dpgmm[1]
         pdf = a.score_samples(test_data)
         evaluate_gen_short(test_labels, - pdf.transpose(), self.diagvib_framework)
         auc = roc_auc_score(test_labels, - pdf.transpose())
@@ -567,7 +567,7 @@ def tsne(data,labels,name):
 
 
 
-def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels , name,reduction_factor=10,constant_closest = 2):
+def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels , name,reduction_factor=1,constant_closest = 2):
     from sklearn.metrics.pairwise import cosine_similarity
     from sklearn.metrics.pairwise import euclidean_distances
 
@@ -580,15 +580,15 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
 
 
 
-
-
-
-
-    lis = [euclidean_distances,cosine_similarity]
-    for i in range(2):
+    lis = [cosine_similarity]
+    for i in range(len(lis)):
         dist_metric = lis[i]
+        print(np.mean(dist_metric(normal_data)))
+        print(np.mean(dist_metric(anomalous_data)))
+        print(np.mean(dist_metric(normal_data,anomalous_data)))
 
-        if False:
+
+        if True:
             for label in all_labels:
                 label_idx = normal_labels == label
                 label_data = normal_data[label_idx]
@@ -600,10 +600,10 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
                         distance_idx=distance_idx[::-1]
                     all_closest = g(label_data[distance_idx])
                     anomalous_outer_similarity+=np.mean(dist_metric(all_closest,[anomalous_sample]))
-                print("similarity between anomalies and closest samples from environment " + str(label) + " using distance metric " + str(dist_metric) +
-                          " : " + str((anomalous_outer_similarity/len(f(anomalous_data)))))
+          #      print("similarity between anomalies and closest samples from environment " + str(label) + " using distance metric " + str(dist_metric) +
+          #                " : " + str((anomalous_outer_similarity/len(f(anomalous_data)))))
 
-        if True:
+        if False:
             anomalous_outer_similarity = 0
             label_data = normal_data
 
@@ -620,8 +620,8 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
                     distance_idx = distance_idx[::-1]
                 all_closest = g(label_data[distance_idx])
                 anomalous_outer_similarity += np.mean(dist_metric(all_closest, [anomalous_sample]))
-            print("similarity between 10% hardest anomalies and closest normal samples using distance metric " + str(dist_metric) +
-                          " : " + str(anomalous_outer_similarity/len(f(anomalous_data))))
+         #   print("similarity between 10% hardest anomalies and closest normal samples using distance metric " + str(dist_metric) +
+         #                 " : " + str(anomalous_outer_similarity/len(f(anomalous_data))))
 
         else:
             anomalous_outer_similarity=0
@@ -629,7 +629,7 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
                 label_data= normal_data
                 distances = dist_metric([anomalous_sample],label_data)
                 distance_idx = np.argsort(distances)[0]
-                if (i ==1):
+                if (i ==0):
                     distance_idx = distance_idx[::-1]
                 all_closest = g(label_data[distance_idx])
                 anomalous_outer_similarity+=np.mean(dist_metric(all_closest,[anomalous_sample]))
@@ -639,7 +639,7 @@ def Joao_similarity(normal_data, normal_labels, anomalous_data,anomalous_labels 
                 label_data= normal_data
                 distances = dist_metric([normal_sample],label_data)
                 distance_idx = np.argsort(distances)[0]
-                if (i ==1):
+                if (i ==0):
                     distance_idx = distance_idx[::-1]
                 all_closest = g(label_data[distance_idx][1:])
                 normal_outer_similarity+=np.mean(dist_metric(all_closest,[normal_sample]))

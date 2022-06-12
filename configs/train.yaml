@@ -29,7 +29,7 @@ defaults:
 
 
 
-MSCL: True
+MSCL: False
 
 # path to original working directory
 # hydra hijacks working directory by changing it to the new log directory
@@ -37,7 +37,7 @@ MSCL: True
 original_work_dir: ${hydra:runtime.cwd}
 
 # path to folder with data
-data_dir: "/cluster/project/jbuhmann/jcarvalho/multi-env/diagvibsix_data2/" #${original_work_dir}/data/
+data_dir: "/cluster/project/jbuhmann/jcarvalho/multi-env/diagvibsix_data/" #${original_work_dir}/data/
 
 # pretty print config at the start of the run using Rich library
 print_config: True

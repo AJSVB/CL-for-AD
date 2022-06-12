@@ -274,13 +274,19 @@ def get_dataset( dataset, test_only=True, image_size=1, download=True):
 
 
 
-def get_dataset1( dataset, test_only=True, image_size=1, download=True):
+def get_dataset1( dataset, MSCL=True, image_size=1, download=True):
 
     train_transform, test_transform = Transform(), transform_resnet18
 
+    if not MSCL:
+        train_transform = transform_resnet18
+
+
+
+
     f = datasets.FGVCAircraft
- #   f = datasets.Food101
-  #  f = datasets.DTD
+    f = datasets.Food101
+    f = datasets.DTD
     if f == datasets.FGVCAircraft:
         train_set = f(DATA_PATH, split="train", download=download, transform=train_transform)
         val_set = f(DATA_PATH, split="train", download=download, transform=test_transform)
@@ -288,8 +294,8 @@ def get_dataset1( dataset, test_only=True, image_size=1, download=True):
         test_set = f(DATA_PATH, split="test", download=download, transform=test_transform)
         se = np.array(set(train_set._labels))
         print(se)
-        train_set = torch.utils.data.Subset(train_set, np.argwhere(np.array(train_set._labels) == 0).flatten())
-        val_set = torch.utils.data.Subset(val_set, np.argwhere(np.array(val_set._labels) == 0).flatten())
+        train_set = torch.utils.data.Subset(train_set, np.argwhere(np.array(train_set._labels)== 0).flatten())
+        val_set = torch.utils.data.Subset(val_set, np.argwhere((np.array(val_set._labels) == 0) + (np.array(val_set._labels)== 1)).flatten())
         print(sum(np.array(test_set_id._labels) == 0))
         test_set_id = torch.utils.data.Subset(test_set_id, np.argwhere(np.array(test_set_id._labels) == 0).flatten())
         print(len(test_set_id))
@@ -302,6 +308,8 @@ def get_dataset1( dataset, test_only=True, image_size=1, download=True):
     elif f == datasets.Food101:
         train_set = f(DATA_PATH, split="train", download=download, transform=train_transform)
         val_set = f(DATA_PATH, split="train", download=download, transform=test_transform)
+        val_set1 = f(DATA_PATH, split="train", download=download, transform=test_transform)
+
         test_set_id = f(DATA_PATH, split="test", download=download, transform=test_transform)
         test_set = f(DATA_PATH, split="test", download=download, transform=test_transform)
         se = np.array(list(set(train_set._labels)))
@@ -313,6 +321,11 @@ def get_dataset1( dataset, test_only=True, image_size=1, download=True):
         b = np.argwhere(np.array(val_set._labels)==se[5]).flatten()
         val_set._labels = [0] * len(val_set._labels)
         val_set = torch.utils.data.Subset(val_set, b)
+        b = np.argwhere(np.array(val_set1._labels)==se[13]).flatten()
+        val_set1._labels = [1] * len(val_set1._labels)
+        val_set1 = torch.utils.data.Subset(val_set1, b)
+        val_set = torch.utils.data.ConcatDataset((val_set, val_set1))
+
         c = np.argwhere(np.array(test_set_id._labels)==se[5]).flatten()
         test_set_id._labels = [0] * len(test_set_id._labels)
         test_set_id = torch.utils.data.Subset(test_set_id, c)
@@ -325,6 +338,8 @@ def get_dataset1( dataset, test_only=True, image_size=1, download=True):
     elif f == datasets.DTD:
         train_set = f(DATA_PATH, split="train", download=download, transform=train_transform)
         val_set = f(DATA_PATH, split="train", download=download, transform=test_transform)
+        val_set1 = f(DATA_PATH, split="train", download=download, transform=test_transform)
+
         test_set_id = f(DATA_PATH, split="test", download=download, transform=test_transform)
         test_set = f(DATA_PATH, split="test", download=download, transform=test_transform)
         se = np.array(set(train_set._labels))
@@ -337,6 +352,13 @@ def get_dataset1( dataset, test_only=True, image_size=1, download=True):
         b = np.argwhere(np.array(val_set._labels)==0).flatten()[:10000]
         val_set._labels = [0] * len(val_set._labels)
         val_set = torch.utils.data.Subset(val_set, b)
+
+        b = np.argwhere(np.array(val_set1._labels) == 2).flatten()[:10000]
+        val_set1._labels = [1] * len(val_set1._labels)
+        val_set1 = torch.utils.data.Subset(val_set1, b)
+        val_set = torch.utils.data.ConcatDataset((val_set, val_set1))
+
+
         c = np.argwhere(np.array(test_set_id._labels)==0).flatten()
         test_set_id._labels = [0] * len(test_set_id._labels)
         test_set_id = torch.utils.data.Subset(test_set_id, c)

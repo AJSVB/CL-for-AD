@@ -117,7 +117,7 @@ class DIAGVIBModule(LightningDataModule):
             from copy import deepcopy
 
             def get_diagvib(PATH,exp_number):
-                if "/cluster/project/jbuhmann/jcarvalho/multi-env/diagvibsix_data/":
+                if PATH=="/cluster/project/jbuhmann/jcarvalho/multi-env/diagvibsix_data/":
                     lis = ["shape", "hue", "texture", "lightness", "position", "scale"]
                     for e, mode in enumerate(lis):
                         print(e)
@@ -133,7 +133,7 @@ class DIAGVIBModule(LightningDataModule):
                         normal_label = train.dataset_spec['modes'][1]['specification']['objs'][0][mode]
                         train.dataset.task_labels =  [int(a != train_env0) for a in train.dataset.task_labels]
                         test.dataset.task_labels = [int(a != normal_label) for a in test.dataset.task_labels] #targets?
-                    return train, test
+                        return train, test
                 else:
                     lis = ["shape", "hue", "texture", "lightness", "position", "scale"]
                     for e, mode in enumerate(lis):
@@ -171,7 +171,7 @@ class DIAGVIBModule(LightningDataModule):
             index = np.arange(dataset_size)
             np.random.shuffle(index)
             print(dataset_size)
-            index = torch.from_numpy(index[0:int(dataset_size/4)])
+            index = torch.from_numpy(index[0:int(dataset_size/10)])
        #     self.trainset = Subset(self.trainset, index)
        #     self.trainset_1 = Subset(self.trainset_1, index)
 

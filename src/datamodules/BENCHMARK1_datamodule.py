@@ -73,7 +73,7 @@ class Benchmark1DataModule(LightningDataModule):
             self.is_setup = True
 
             from . import get_dataset
-            train, val, test_id, test_ood,_  = get_dataset1(self.hparams.dataset)
+            train, val, test_id, test_ood,_  = get_dataset1(self.hparams.dataset, self.hparams.MSCL)
             #train.target_transform = lambda id: 0
             #val.target_transform = lambda id: 0
             #test_id.target_transform = lambda id: 0
